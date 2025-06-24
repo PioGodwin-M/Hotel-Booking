@@ -11,9 +11,8 @@ const clerkWebhooks=async(req,res)=>{
             "svix-signature":req.headers["svix-signature"],
 
         }
-         const payload = req.body.toString("utf8");
-        const evt=whook.verify(payload,headers);
-        const {data,type}=evt
+        await whook.verify(JSON.stringify(req.body),headers)
+        const {data,type}=req.body
         const userData={
         _id: data.id,
         email:data.email_addresses[0].email_address,
@@ -35,11 +34,11 @@ const clerkWebhooks=async(req,res)=>{
            }
            default:break;
         }
-        res.json({success:true,message: "Webhook Recieved"})
+        res.status(200).json({success:true,message: "Webhook Recieved"})
     }
     catch(error){
         console.log(error.message);
-        res.json({success: false,message:error.message});
+        res.status(401).json({success: false,message:error.message});
     }
 }
 export default clerkWebhooks
