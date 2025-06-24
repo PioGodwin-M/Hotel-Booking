@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 
 const userSchema=mongoose.Schema({
-    _id:{type : String, require:true},
-    username:{type : String, require:true},
-    email:{type : String, require:true},
-    image:{type : String, require:true},
+    _id:{type : String, required:true},
+    username:{type : String, required:true},
+    email:{type : String, required:true},
+    image:{type : String, required:true},
     role:{type : String, enum : ["user","hotelOwner"] , default: "user"},
-    recentSearchedCities:[{type : String, require:true}],
+    recentSearchedCities:[{type : String, required:true}],
 },{timestamps:true});
 const User=mongoose.model("User",userSchema);
 export default User;
