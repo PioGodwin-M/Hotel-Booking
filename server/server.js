@@ -4,8 +4,14 @@ import cors from "cors"
 import connectDB from "./config/db.js";
 import { clerkMiddleware } from '@clerk/express'
 import clerkWebhooks from "./controller/clerkWebhooks.js";
+import userRoutes from "./routes/userRoutes.js";
+import hotelRouter from "./routes/hotelRoutes.js";
+import connectCloudinary from "./config/cloudinary.js";
+import roomRouter from "./routes/roomRoutes.js";
+import bookingRouter from "./routes/bookingRoutes.js";
 
-connectDB()
+connectDB();
+connectCloudinary();
 const app=express();
 
 app.use(cors())//Enable cross origin resource sharing
@@ -18,6 +24,10 @@ app.use(clerkMiddleware())
 app.post('/api/clerk',clerkWebhooks);
 
 app.get('/',(req,res)=> res.send("API is Working is fine"))
+app.use('/api/user',userRoutes)
+app.use('/api/hotels',hotelRouter)
+app.use('api/rooms',roomRouter)
+app.use('/api/bookings',bookingRouter)
 
 const PORT=process.env.port || 3000;
 
