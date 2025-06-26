@@ -9,7 +9,7 @@ import hotelRouter from "./routes/hotelRoutes.js";
 import connectCloudinary from "./config/cloudinary.js";
 import roomRouter from "./routes/roomRoutes.js";
 import bookingRouter from "./routes/bookingRoutes.js";
-
+import bodyParser from "body-parser";
 connectDB();
 connectCloudinary();
 const app=express();
