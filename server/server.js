@@ -27,7 +27,7 @@ app.use(express.json())
 app.get('/',(req,res)=> res.send("API is Working is fine"))
 app.use('/api/user',userRoutes)
 app.use('/api/hotels',hotelRouter)
-app.use('api/rooms',roomRouter)
+app.use('/api/rooms',roomRouter)
 app.use('/api/bookings',bookingRouter)
 
 const PORT=process.env.port || 3000;

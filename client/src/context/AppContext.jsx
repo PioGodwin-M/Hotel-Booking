@@ -10,7 +10,7 @@ export const AppProvider = ({children})=>{
     const navigate=useNavigate();
     const {user}=useUser();
     const {getToken}=useAuth();
-    const [isOwner,setIsOwner]=useState(false);
+    const [isOwner,setIsOwner]=useState(true);
     const [showHotelReg,setShowHotelReg]=useState(false);
     const [searchedCities,setSearchedCities]=useState([]);
     const fetchUser=async()=>{

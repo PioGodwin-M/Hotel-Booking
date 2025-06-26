@@ -5,7 +5,7 @@ import Room from "../models/room.js";
 export const createRoom= async(req,res)=>{
  try{
       const {roomType,pricePerNight,amenities}=req.body;
-      const hotel=await Hotel.findOne({owner:req.auth.userId});
+      const hotel=await Hotel.findOne({owner:req.auth().userId});
       if(!hotel) return res.json({
         success:false,message:"Hotel Not Available"
       });
@@ -47,7 +47,7 @@ export const getRoom= async(req,res)=>{
 }
 export const getOwnerRoom= async(req,res)=>{
         try{
-          const hotelData=await Hotel({owner:req.auth.userid})
+          const hotelData=await Hotel.findOne({owner:req.auth().userId})
           const rooms=await Room.find({hotel:hotelData._id.toString()}).populate("hotel");
           res.json({success:true,rooms});
         }
