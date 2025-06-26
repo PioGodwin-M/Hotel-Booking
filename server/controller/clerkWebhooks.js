@@ -1,4 +1,4 @@
-import { json } from "express";
+
 import User from "../models/user.js";
 import { Webhook } from "svix";
 import mongoose from "mongoose";
