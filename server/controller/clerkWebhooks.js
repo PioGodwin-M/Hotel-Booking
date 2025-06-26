@@ -13,6 +13,9 @@ const clerkWebhooks=async(req,res)=>{
         }
          const payload=await whook.verify(req.body,headers)
         const {data,type}=payload
+        console.log("Incoming Clerk webhook:", type);
+console.log("Data:", JSON.stringify(data, null, 2));
+
         const userData={
         _id: data.id,
         email:data.email_addresses[0].email_address,
