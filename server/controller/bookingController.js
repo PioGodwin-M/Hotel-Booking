@@ -2,7 +2,7 @@ import Booking from "../models/booking.js";
 import Room from "../models/room.js";
 import Hotel from "../models/hotel.js";
 import transporter from "../config/nodeMailer.js";
-import stripe, { Stripe } from "stripe";
+import { Stripe } from "stripe";
 // Utility function to check room availability
 const checkAvailability = async ({ checkInDate, checkOutDate, room }) => {
   try {
@@ -132,7 +132,7 @@ export const stripePayment = async (req, res) => {
     const { bookingId } = req.body;
     const booking = await Booking.findById(bookingId).populate("room");
     const roomData= await Room.findById(booking.room._id).populate("hotel");
-    const totalPrice = roomData.totalPrice;
+    const totalPrice = booking.totalPrice;
     const {origin} = req.headers;
     const line_items = [
       {
