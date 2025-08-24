@@ -130,40 +130,43 @@ export const stripePayment = async (req, res) => {
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const { bookingId } = req.body;
+
     const booking = await Booking.findById(bookingId).populate("room");
-    const roomData= await Room.findById(booking.room._id).populate("hotel");
+    const roomData = await Room.findById(booking.room._id).populate("hotel");
     const totalPrice = booking.totalPrice;
-    const {origin} = req.headers;
+    const { origin } = req.headers;
+
     const line_items = [
       {
         price_data: {
           currency: "inr",
           product_data: {
             name: roomData.name,
-            
           },
-          unit_amount: totalPrice * 100,
+          unit_amount: totalPrice * 100, // Stripe expects amount in paise
         },
         quantity: 1,
       },
     ];
+
     const session = await stripe.checkout.sessions.create({
-      
       line_items,
       mode: "payment",
       success_url: `${origin}/bookings/me`,
       cancel_url: `${origin}/bookings/me`,
-      metadata: {
-        bookingId: booking._id.toString(),
+      payment_intent_data: {
+        metadata: {
+          bookingId: booking._id.toString(), // ✅ Attach to PaymentIntent
+        },
       },
     });
- 
 
     res.json({
       success: true,
       url: session.url,
     });
   } catch (error) {
+    console.error("❌ Stripe Payment Error:", error.message);
     res.json({ success: false, message: "Payment Failed" });
   }
 };
