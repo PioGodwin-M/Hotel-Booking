@@ -4,7 +4,7 @@ import Title from '../../components/Title'
 import { useAppContext } from '../../context/AppContext';
 import toast from 'react-hot-toast';
 const ListRoom = () => {
-    const {axios,getToken,user}=useAppContext();
+    const {axios,getToken,user,currency}=useAppContext();
     const[rooms,setRooms]=useState([])
     // Fetch rooms from the server
     const fetchRooms = async () => {
@@ -26,14 +26,18 @@ const ListRoom = () => {
         }
     }
     const toggleAvailability = async (roomId) => {
-     const {data}= await axios.put(`/api/rooms/toggle-availability`, {roomId}, {
+     const {data}= await axios.post(`/api/rooms/toggle-availability`, {roomId}, {
         headers: {
             Authorization: `Bearer ${await getToken()}`
         }
      });
-    //  if(){
+     if(data.success){
+        toast.success(data.message);
+        fetchRooms();
 
-    //  }
+     }else{
+        toast.error(data.message);
+     }
     }
     
     useEffect(() => {
@@ -51,7 +55,7 @@ const ListRoom = () => {
                <tr>
                 <th className='py-3 px-4 text-gray-800 font-medium'>Name</th>
                 <th className='py-3 px-4 text-gray-800 font-medium max-sm:hidden'>Facility</th>
-                <th className='py-3 px-4 text-gray-800 font-medium '>Price / night</th>
+                <th className='py-3 px-4 text-gray-800 font-medium '> Price / night</th>
                 <th className='py-3 px-4 text-gray-800 font-medium text-center'>Actions</th>
                </tr>
             </thead>
@@ -61,10 +65,10 @@ const ListRoom = () => {
                         <tr key={index}>
                             <td className='py-3 px-4 text-gray-700 border-t border-gray-300'>{item.roomType}</td>
                             <td className='py-3 px-4 text-gray-700 border-t border-gray-300 max:sm-hidden'>{item.amenities.join(', ')}</td>
-                            <td className='py-3 px-4 text-gray-700 border-t border-gray-300'>$ {item.pricePerNight}</td>
+                            <td className='py-3 px-4 text-gray-700 border-t border-gray-300'>{currency} {item.pricePerNight}</td>
                             <td className='py-3 px-4 text-sm text-red-500 text-center border-t border-gray-300'>
                                 <label  className='relative inline-flex items-center cursor-pointer text-gray-900 gap-3'>
-                                    <input type='checkbox' className='sr-only peer' checked={item.isAvailable} 
+                                    <input type='checkbox' className='sr-only peer' checked={item.isAvailable} onChange={()=>toggleAvailability(item._id)}
                                    ></input>
                                     <div className='w-12 h-7 bg-slate-300 rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200'></div>
                                     <span className='dot absolute left-1 top-1 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out peer-checked:translate-x-5'></span>

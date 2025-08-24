@@ -2,6 +2,7 @@
 import Booking from "../models/booking.js"
 import Room from "../models/room.js";
 import Hotel from "../models/hotel.js";
+import transporter from "../config/nodeMailer.js";
 
 const checkAvailability= async({checkInDate,checkOutDate,room})=>{
     try{
@@ -40,7 +41,7 @@ export const createBooking= async(req,res)=>{
             // brfore booking check availabilty
             const isAvailable=await checkAvailability({checkInDate,checkOutDate,room});
             if(!isAvailable){
-                res.json({succes:false,message:"Room is Not Available"});
+                res.json({success:false,message:"Room is Not Available"});
             }
             const roomData=await Room.findById(room).populate("hotel");
             let totalPrice=roomData.pricePerNight;
@@ -59,10 +60,26 @@ export const createBooking= async(req,res)=>{
                 checkOutDate,
                 totalPrice
             })
-            res.json({succes:true,message:"Booking Created Successfully"})
+            
+
+            const mailOptions={
+                from:process.env.SENDER_EMAIL,
+                to:req.user.email,
+                subject:"Booking Confirmation",
+                html:`<h1>Booking Confirmed</h1>
+                <p>Dear ${req.user.name},</p>
+                <p>Booking ID: ${booking._id}</p>
+                <p>Your booking for room ${roomData.name} at hotel ${roomData.hotel.name} is confirmed from ${booking.checkInDate.toDateString()} to ${booking.checkOutDate.toDateString()}.</p>
+                <h2>Total Price: ₹ ${booking.totalPrice}</h2>
+                <p>We look forward to hosting you!</p>
+                <p>Thank you for choosing our service.</p>
+                `
+            };
+            await transporter.sendMail()
+            res.json({success:true,message:"Booking Created Successfully"})
     }
     catch(error){
-        res.json({succes:false,message:error.message});
+        res.json({success:false,message:error.message});
     }
 }
 
@@ -93,7 +110,7 @@ export const getUserBookings= async(req,res)=>{
     res.json({success:true,dashBoardData:{totalBookings,totalRevenue,bookings}});
    }
    catch(error){
-    res.json({succes:false,message:"Failed to fetch Bookings"});
+    res.json({success:false,message:"Failed to fetch Bookings"});
    }
 
  }
