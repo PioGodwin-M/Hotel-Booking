@@ -27,7 +27,7 @@ function App() {
       <div className="min-h-[70vh]">
         <Routes>
           <Route path="/" element={<Home />} />
-          <React path="/about" element={<About></About>}/>
+          <Route path="/about" element={<About></About>}/>
           <Route path="/rooms" element={<AllRooms />} />
           <Route path="/rooms/:id" element={<RoomDetails />} />
           <Route path="/my-bookings" element={<MyBookings />} />
