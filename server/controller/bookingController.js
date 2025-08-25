@@ -144,6 +144,9 @@ export const stripePayment = async (req, res) => {
     }
 
     const roomData = await Room.findById(booking.room._id).populate("hotel");
+    
+    console.log('Found room data:', roomData);
+    console.log('Room name:', roomData?.name);
     if (!roomData) {
       return res.status(404).json({ success: false, message: "Room data not found." });
     }
