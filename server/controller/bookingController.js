@@ -165,7 +165,7 @@ export const stripePayment = async (req, res) => {
         price_data: {
           currency: "inr",
           product_data: {
-            name: roomData.name,
+            name: roomData.hotel.name,
           },
           unit_amount: Math.round(totalPrice * 100), // Use Math.round() for safety
         },
