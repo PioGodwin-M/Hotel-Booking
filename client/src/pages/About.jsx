@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaAward, FaHeadset, FaSearchDollar, FaCheckCircle } from 'react-icons/fa';
-
+import journeyImage from '../assets/journey.jpg';
 // --- Team Member Card Component ---
 const TeamMember = ({ imgSrc, name, title }) => (
   <div className="text-center">
@@ -35,7 +35,7 @@ const About = () => {
         <div className="absolute inset-0 bg-black opacity-50"></div>
         <div className="relative container mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-extrabold leading-tight animate-fade-in-down">
-            About StayFinder
+            About QuickStay
           </h1>
           <p className="mt-4 text-xl md:text-2xl max-w-3xl mx-auto animate-fade-in-up">
             Crafting unforgettable travel experiences, one booking at a time.
@@ -49,7 +49,7 @@ const About = () => {
           <div className="flex flex-col lg:flex-row items-center gap-12">
             <div className="lg:w-1/2">
               <img
-                src="https://media.istockphoto.com/id/1368417515/vector/woman-plan-a-trip-travel-concept-top-view-vector-illustration.jpg?s=612x612&w=0&k=20&c=6_Vz953qjNVaFRG-e9V0p9k5E9ztzSQ0hJ2qjqf5aVA="
+                src={journeyImage}
                 alt="Our Journey"
                 className="rounded-lg shadow-2xl w-full h-auto object-cover"
               />
@@ -57,7 +57,7 @@ const About = () => {
             <div className="lg:w-1/2">
               <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Story 📖</h2>
               <p className="text-gray-700 leading-relaxed mb-4">
-                Founded in 2020 by a group of passionate travelers, **StayFinder** was born from a simple idea: booking a hotel should be as delightful as the stay itself. We were tired of confusing websites and hidden fees. We envisioned a platform that was transparent, beautiful, and dedicated to helping people discover their perfect getaway.
+                Founded in 2025 by a group of passionate travelers, **QuickStay** was born from a simple idea: booking a hotel should be as delightful as the stay itself. We were tired of confusing websites and hidden fees. We envisioned a platform that was transparent, beautiful, and dedicated to helping people discover their perfect getaway.
               </p>
               <p className="text-gray-700 leading-relaxed">
                 From a small startup to a trusted name in travel, our mission has remained the same: to connect travelers with exceptional accommodations and create memories that last a lifetime. We believe travel enriches our lives, and we're here to make it accessible and enjoyable for everyone.
