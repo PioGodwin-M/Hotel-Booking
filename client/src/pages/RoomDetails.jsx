@@ -20,7 +20,7 @@ const RoomDetails = () => {
           toast.error("Chech in date has to be less than check out date");
           return;
         }
-        const {data}=await axios.post('http://localhost:3000/api/bookings/check-availability',
+        const {data}=await axios.post(`${VITE_BACKEND_URL}/api/bookings/check-availability`,
           {room:id,checkInDate,checkOutDate})
         if(data.success){
           if(data.isAvailable){
