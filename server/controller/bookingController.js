@@ -135,19 +135,19 @@ export const stripePayment = async (req, res) => {
     const roomData = await Room.findById(booking.room._id).populate("hotel");
     const totalPrice = booking.totalPrice;
     const { origin } = req.headers;
-
-    const line_items = [
-      {
-        price_data: {
-          currency: "inr",
-          product_data: {
-            name: roomData.name,
-          },
-          unit_amount: totalPrice * 100, // Stripe expects amount in paise
-        },
-        quantity: 1,
+  console.log(typeof totalPrice);
+   const line_items = [
+  {
+    price_data: {
+      currency: "inr",
+      product_data: {
+        name: roomData.name, // Corrected: Add the product_data object with a name
       },
-    ];
+      unit_amount: totalPrice * 100,
+    },
+    quantity: 1,
+  },
+];
 
     const session = await stripe.checkout.sessions.create({
       line_items,
