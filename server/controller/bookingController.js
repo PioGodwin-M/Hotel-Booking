@@ -130,7 +130,7 @@ export const stripePayment = async (req, res) => {
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const { bookingId } = req.body;
-
+    console.log('Received bookingId:', bookingId); 
     // Check if bookingId is valid
     if (!bookingId) {
       return res.status(400).json({ success: false, message: "Booking ID is required." });
@@ -169,7 +169,7 @@ export const stripePayment = async (req, res) => {
         quantity: 1,
       },
     ];
-
+   console.log('Sending to Stripe:', JSON.stringify({ line_items }));
     const session = await stripe.checkout.sessions.create({
       line_items,
       mode: "payment",
