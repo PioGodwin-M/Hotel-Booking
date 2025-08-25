@@ -64,25 +64,7 @@ export const createBooking = async (req, res) => {
     });
 
     // Send confirmation email
-    const mailOptions = {
-      from: process.env.SENDER_EMAIL,
-      to: req.user.email,
-      subject: "Booking Confirmation",
-      html: `
-        <h1>Booking Confirmed</h1>
-        <p>Dear ${req.user.name},</p>
-        <p><strong>Booking ID:</strong> ${booking._id}</p>
-        <p>Your booking for room <b>${roomData.name}</b> 
-        at hotel <b>${roomData.hotel.name}</b> 
-        is confirmed from ${booking.checkInDate.toDateString()} 
-        to ${booking.checkOutDate.toDateString()}.</p>
-        <h2>Total Price: ₹ ${booking.totalPrice}</h2>
-        <p>We look forward to hosting you!</p>
-        <p>Thank you for choosing our service.</p>
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
+    
 
     res.json({ success: true, message: "Booking Created Successfully", booking });
   } catch (error) {
@@ -176,8 +158,8 @@ export const stripePayment = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       line_items,
       mode: "payment",
-      success_url: `${origin}/bookings/me`,
-      cancel_url: `${origin}/bookings/me`,
+      success_url: `${origin}/my-bookings`,
+      cancel_url: `${origin}/my-bookings`,
       payment_intent_data: {
         metadata: {
           bookingId: booking._id.toString(),
