@@ -131,23 +131,44 @@ export const stripePayment = async (req, res) => {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const { bookingId } = req.body;
 
+    // Check if bookingId is valid
+    if (!bookingId) {
+      return res.status(400).json({ success: false, message: "Booking ID is required." });
+    }
+
     const booking = await Booking.findById(bookingId).populate("room");
+
+    // Check if the booking and its associated room exist
+    if (!booking || !booking.room) {
+      return res.status(404).json({ success: false, message: "Booking or room not found." });
+    }
+
     const roomData = await Room.findById(booking.room._id).populate("hotel");
+    if (!roomData) {
+      return res.status(404).json({ success: false, message: "Room data not found." });
+    }
+
     const totalPrice = booking.totalPrice;
+
+    // Check if the totalPrice is a valid number before using it
+    if (typeof totalPrice !== 'number' || isNaN(totalPrice)) {
+      return res.status(400).json({ success: false, message: "Invalid total price in booking data." });
+    }
+
     const { origin } = req.headers;
-  console.log(typeof totalPrice);
-   const line_items = [
-  {
-    price_data: {
-      currency: "inr",
-      product_data: {
-        name: roomData.name, // Corrected: Add the product_data object with a name
+
+    const line_items = [
+      {
+        price_data: {
+          currency: "inr",
+          product_data: {
+            name: roomData.name,
+          },
+          unit_amount: Math.round(totalPrice * 100), // Use Math.round() for safety
+        },
+        quantity: 1,
       },
-      unit_amount: totalPrice * 100,
-    },
-    quantity: 1,
-  },
-];
+    ];
 
     const session = await stripe.checkout.sessions.create({
       line_items,
@@ -156,7 +177,7 @@ export const stripePayment = async (req, res) => {
       cancel_url: `${origin}/bookings/me`,
       payment_intent_data: {
         metadata: {
-          bookingId: booking._id.toString(), // ✅ Attach to PaymentIntent
+          bookingId: booking._id.toString(),
         },
       },
     });
@@ -167,6 +188,6 @@ export const stripePayment = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Stripe Payment Error:", error.message);
-    res.json({ success: false, message: "Payment Failed" });
+    res.status(500).json({ success: false, message: "Payment Failed" });
   }
 };
