@@ -105,7 +105,8 @@ const About = () => {
           <h2 className="text-4xl font-bold text-gray-800 mb-12">Meet Our Team 👋</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
             <TeamMember imgSrc="https://www.shutterstock.com/image-photo/successful-company-with-happy-workers-260nw-1662211225.jpg" name="Pio Godwin M" title="CEO & Founder" />
-            
+            <TeamMember imgSrc="https://www.shutterstock.com/image-photo/portrait-young-smiling-man-arm-260nw-1299946255.jpg" name="Kamalesh M" title="Head of Technology" />
+            <TeamMember imgSrc="https://www.shutterstock.com/image-photo/headshot-portrait-smiling-millennial-businesswoman-260nw-1725712123.jpg" name="Raghunath S" title="Director of Hospitality" />
           </div>
         </div>
       </section>
