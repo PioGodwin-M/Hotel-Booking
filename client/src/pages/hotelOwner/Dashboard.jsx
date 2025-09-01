@@ -12,7 +12,7 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const res = await axios.get('/api/hotelOwner/dashboard',{
+      const res = await axios.get('/api/rooms/dashboard',{
         headers:{ Authorization:`Bearer ${await getToken()}` }
       });
 
