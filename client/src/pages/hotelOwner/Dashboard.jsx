@@ -4,35 +4,37 @@ import { assets, dashboardDummyData } from '../../assets/assets'
 import { useAppContext } from '../../context/AppContext'
 const Dashboard = () => {
   const {currency,user,getToken,axios,toast}=useAppContext();
-    const[dash,setDash]=useState({
-      bookings:[],
-      totalBookings:0,
-      totalRevenue:0,
-    })
-    const fetchDashboardData=async()=>{
-      try{   
-        const data=await axios.get('/api/hotelOwner/dashboard',{headers:{Authorization:`Bearer ${await getToken()}`}});
-        if(data.success){
-          setDash({
-            bookings:data.bookings,
-            totalBookings:data.totalBookings,
-            totalRevenue:data.totalRevenue,
-          })
-        }
-        else{
-          toast.error(data.message)
-        }
+  const[dash,setDash]=useState({
+    bookings:[],
+    totalBookings:0,
+    totalRevenue:0,
+  });
+
+  const fetchDashboardData = async () => {
+    try {
+      const res = await axios.get('/api/hotelOwner/dashboard',{
+        headers:{ Authorization:`Bearer ${await getToken()}` }
+      });
+
+      if(res.data.success){
+        setDash({
+          bookings:res.data.bookings,
+          totalBookings:res.data.totalBookings,
+          totalRevenue:res.data.totalRevenue,
+        });
+      } else {
+        toast.error(res.data.message);
       }
-      catch(error){
-        toast.error(error.message)
-      
-      }
-      useEffect(()=>{
-        if(user){
-          fetchDashboardData();
-        }
-      },[user])
+    } catch(error){
+      toast.error(error.message);
     }
+  };
+
+  useEffect(()=>{
+    if(user){
+      fetchDashboardData();
+    }
+  },[user]);
   return (
     <div>
       <Title align='left' font='outfit' title='Dashboard' subTitle='Monitor your room listings, track bookings and analyse revenue all in one place. Stay updated with real-time insights to ensure smooth operation. '
