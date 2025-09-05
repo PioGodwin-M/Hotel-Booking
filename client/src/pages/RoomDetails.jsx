@@ -43,10 +43,16 @@ const RoomDetails = () => {
     const onSubmitHandler =async (e)=>{
       try{
         e.preventDefault();
+        
         if(!isAvailable){
           return checkAvailability();
         }
+
         else{
+          if(guests>10){
+            toast.error("You can book maximum 10 rooms at a time");
+            return;
+          }
               const {data}=await axios.post('/api/bookings/book',{room:id,checkInDate,checkOutDate,guests,paymentMethod:"Pay At Hotel"},
                 {headers:{Authorization:`Bearer ${await getToken()}`}}
               )
@@ -106,7 +112,7 @@ const RoomDetails = () => {
                 ))}
                </div>
                </div>
-               <p className='text-2xl font-medium'>${room.pricePerNight} /night</p>
+               <p className='text-2xl font-medium'>₹{room.pricePerNight} /night</p>
       </div>
       <form   onSubmit={onSubmitHandler} className='flex flex-col md:flex-row items-start md:items-center border border-gray-300 justify-between bg-white shadow-[0px_0px_20px_rgba
       (0,0,0,0.15)] p-6 rounded-xl mx-auto mt-16 max-w-6xl mb-12'>
@@ -124,8 +130,8 @@ const RoomDetails = () => {
                 </div>
                 <div className='w-px h-15 bg-gray-300/70 max-md:hidden'></div>
                  <div className='flex flex-col'>
-                    <label htmlFor="guests" className='font-medium'>Guests</label>
-                    <input type='number' id='guests' onChange={(e)=>setGuests(e.target.value)} value={guests} className='max-w-20 rounded border border-gray-300 px-3 py-2 mt-1.5 outline-none' required placeholder='1'/>
+                    <label htmlFor="guests" className='font-medium'>Rooms</label>
+                    <input type='number' id='guests' max="10" onChange={(e)=>setGuests(e.target.value)} value={guests} className='max-w-20 rounded border border-gray-300 px-3 py-2 mt-1.5 outline-none' required placeholder='1'/>
                 </div>
             </div>
             <button type='submit' className='bg-[#2563EB] hover:bg- active:scale-95 transtion-all text-white rounded-md max-md:w-full
