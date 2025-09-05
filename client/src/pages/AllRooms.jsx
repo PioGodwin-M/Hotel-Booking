@@ -67,13 +67,21 @@ const AllRooms = () => {
     return selectedFilters.roomTypes.includes(room.roomType);
   }
 
-  const matchesPriceRange=(room)=>{
-    if(selectedFilters.priceRange.length===0) return true;
-    return selectedFilters.priceRange.some((range)=>{
-      const [min,max] = range.split(' to ').map(Number);
+
+  const matchesPriceRange = (room) => {
+  if (selectedFilters.priceRange.length === 0) return true;
+
+  return selectedFilters.priceRange.some((range) => {
+    if (range.includes("and more")) {
+      const min = Number(range.split(" ")[0]); // take "1500" from "1500 and more"
+      return room.pricePerNight >= min;
+    } else {
+      const [min, max] = range.split(" to ").map(Number);
       return room.pricePerNight >= min && room.pricePerNight <= max;
-    });
-  }
+    }
+  });
+};
+
 
   const sortedRooms= (a,b)=>{
     if(selectedSort==="Prices Low to High"){
