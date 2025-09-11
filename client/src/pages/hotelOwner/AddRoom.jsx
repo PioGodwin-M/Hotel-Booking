@@ -117,7 +117,7 @@ const AddRoom = () => {
             </p>
             <input type='number' min="1" placeholder='0' className='border border-gray-300 mt-1 rounded p-2 w-24' value={inputs.pricePerNight} onChange={e=>setInputs({...inputs,pricePerNight:e.target.value})}></input>
          </div>
-        </div>
+        </div> 
         <p className='text-gray-800 mt-4'>Amenities</p>
         <div className='flex flex-col flex-wrap mt-1 text-gray-400 max-w-sm'>
             {Object.keys(inputs.amenities).map((amenity,index)=>
