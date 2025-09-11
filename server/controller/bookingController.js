@@ -64,6 +64,29 @@ export const createBooking = async (req, res) => {
     });
 
     // Send confirmation email
+    // After creating booking
+try{
+await transporter.sendMail({
+  from: `"Hotel Booking" <${process.env.SMPT_USER}>`,
+  to: req.user.email, // you have email here!
+  subject: "Booking Confirmation ✔",
+  html: `
+    <h2>Booking Confirmed 🎉</h2>
+    <p>Hi ${req.user.name},</p>
+    <p>Your booking at <strong>${roomData.hotel.name}</strong> has been confirmed.</p>
+    <p><strong>Room:</strong> ${roomData.name}</p>
+    <p><strong>Check-in:</strong> ${new Date(checkInDate).toDateString()}</p>
+    <p><strong>Check-out:</strong> ${new Date(checkOutDate).toDateString()}</p>
+    <p><strong>Guests:</strong> ${guests}</p>
+    <p><strong>Total Price:</strong> ₹${totalPrice}</p>
+    <br/>
+    <p>We look forward to hosting you! 🌟</p>
+  `,
+});}
+catch (emailError) {
+  console.error("❌ Failed to send booking email:", emailError.message);
+}
+
     
 
     res.json({ success: true, message: "Booking Created Successfully", booking });
