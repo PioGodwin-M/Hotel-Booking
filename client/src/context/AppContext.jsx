@@ -1,68 +1,88 @@
-import axios from "axios";
-import { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useUser, useAuth } from "@clerk/clerk-react";
-import toast from "react-hot-toast";
-
-axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth, useUser } from '@clerk/clerk-react';
+import { publicApi, authApi } from '../lib/apiClient';
 
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const currency = import.meta.env.VITE_CURRENCY || "₹";
+  const currency = import.meta.env.VITE_CURRENCY || '₹';
   const navigate = useNavigate();
+  const { getToken, isSignedIn, isLoaded: isAuthLoaded } = useAuth();
   const { user } = useUser();
-  const { getToken } = useAuth();
 
-  const [isOwner, setIsOwner] = useState(false);   // 🔑 default false
+  const [isOwner, setIsOwner] = useState(false);
+  const [checkingOwner, setCheckingOwner] = useState(true);
   const [showHotelReg, setShowHotelReg] = useState(false);
+  // searchedCities kept in local state for filtering & backward compatibility
+  // Note: Backend user-service does not persist recent search history
   const [searchedCities, setSearchedCities] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [loadingRooms, setLoadingRooms] = useState(true);
 
-  // Fetch all rooms
-  const fetchRooms = async () => {
+  // Register Clerk token getter for authApi interceptor
+  useEffect(() => {
+    window.__getClerkToken = getToken;
+    return () => {
+      delete window.__getClerkToken;
+    };
+  }, [getToken]);
+
+  /**
+   * Fetch all rooms (public)
+   * BACKEND DEPENDENCY:
+   * The catalog-service currently only provides GET /api/rooms/hotel/:hotelId
+   * A public GET /api/rooms endpoint returning all active rooms is a documented backend dependency.
+   */
+  const roomsFetching = useRef(false);
+  const fetchRooms = useCallback(async () => {
+    if (roomsFetching.current) return;
+    roomsFetching.current = true;
+    setLoadingRooms(true);
     try {
-      const { data } = await axios.get("/api/rooms");
-      if (data.success) {
-        setRooms(data.rooms);
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error(error.message);
+      const response = await publicApi.get('/api/rooms');
+      setRooms(response.data?.rooms ?? []);
+    } catch {
+      // Graceful fallback to empty array when endpoint is missing or returns error
+      setRooms([]);
+    } finally {
+      roomsFetching.current = false;
+      setLoadingRooms(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchRooms();
-  }, []);
+  }, [fetchRooms]);
 
-  // Fetch current user role + info
-  const fetchUser = async () => {
-    try {
-      const token = await getToken();
-      const { data } = await axios.get("/api/user", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (data.success) {
-        setIsOwner(data.role === "hotelOwner");
-        setSearchedCities(data.recentSearchedCities || []);
-      } else {
-        toast.error(data.message || "Failed to load user info");
-      }
-    } catch (error) {
-      toast.error(error.message);
+  /**
+   * Determine isOwner via GET /api/hotels/owner (authenticated).
+   * In the microservices architecture, ownership is determined by whether the user
+   * owns any registered hotels in catalog-service.
+   */
+  const checkOwnerStatus = useCallback(async () => {
+    if (!isSignedIn) {
+      setIsOwner(false);
+      setCheckingOwner(false);
+      return;
     }
-  };
+
+    setCheckingOwner(true);
+    try {
+      const response = await authApi.get('/api/hotels/owner');
+      const count = response.data?.count ?? response.data?.hotels?.length ?? 0;
+      setIsOwner(count > 0);
+    } catch {
+      setIsOwner(false);
+    } finally {
+      setCheckingOwner(false);
+    }
+  }, [isSignedIn]);
 
   useEffect(() => {
-    if (user) {
-      fetchUser();
-    } else {
-      setIsOwner(false);
-    }
-  }, [user]);
+    if (!isAuthLoaded || isSignedIn === undefined) return;
+    checkOwnerStatus();
+  }, [isAuthLoaded, isSignedIn, checkOwnerStatus]);
 
   const value = {
     currency,
@@ -71,12 +91,17 @@ export const AppProvider = ({ children }) => {
     getToken,
     isOwner,
     setIsOwner,
-    axios,
+    checkingOwner,
+    checkOwnerStatus,
+    // publicApi exported as `axios` for backward compatibility
+    axios: publicApi,
+    authApi,
     showHotelReg,
     setShowHotelReg,
     searchedCities,
     setSearchedCities,
     rooms,
+    loadingRooms,
     fetchRooms,
   };
 

@@ -1,3 +1,19 @@
-node_modules
-*.envserver/.env
-server/.env
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+*.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# Build artifacts & logs
+dist/
+dist-ssr/
+build/
+*.log
+logs/
+.DS_Store

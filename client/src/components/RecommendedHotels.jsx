@@ -7,25 +7,23 @@ const RecommendedHotels = () => {
   const { rooms, searchedCities } = useAppContext();
   const [recommended, setRecommended] = useState([]);
 
-  const filterHotels = () => {
+  useEffect(() => {
+    if (!Array.isArray(rooms)) {
+      setRecommended([]);
+      return;
+    }
+
     if (!searchedCities || searchedCities.length === 0) {
-      // If no search → show all rooms
       setRecommended(rooms);
     } else {
-      // Case-insensitive match
-      const filteredHotels = rooms.filter((room) =>
-        searchedCities.some(
-          (city) => city.toLowerCase() === room.hotel.city.toLowerCase()
-        )
-      );
-      setRecommended(filteredHotels);
+      const filtered = rooms.filter((room) => {
+        const city = room?.hotel?.city || '';
+        return searchedCities.some(
+          (searched) => searched.toLowerCase() === city.toLowerCase()
+        );
+      });
+      setRecommended(filtered.length > 0 ? filtered : rooms);
     }
-  };
-
-  useEffect(() => {
-    filterHotels();
-    console.log("Rooms:", rooms);
-    console.log("Searched Cities:", searchedCities);
   }, [rooms, searchedCities]);
 
   return (
@@ -36,19 +34,17 @@ const RecommendedHotels = () => {
       />
 
       {recommended.length > 0 ? (
-        <div className="flex items-center justify-center gap-6 mt-20">
+        <div className="flex flex-wrap items-center justify-center gap-6 mt-16">
           {recommended.slice(0, 4).map((room, index) => (
             <HotelCard key={room._id} room={room} index={index} />
           ))}
         </div>
       ) : (
-        <p className="text-gray-600 text-center mt-20">
-          No recommended hotels found.
+        <p className="text-gray-500 text-center mt-12 text-sm">
+          No recommended hotels available at the moment.
         </p>
       )}
-      <hr></hr>
     </div>
-
   );
 };
 
