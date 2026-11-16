@@ -49,6 +49,47 @@ export const retrieveStripePaymentIntent = async (id) => {
   return getStripeClient().paymentIntents.retrieve(id);
 };
 
+export const createStripeRefund = async ({
+  stripePaymentIntentId,
+  amountMinor,
+  reason = "requested_by_customer",
+  metadata = {},
+  idempotencyKey,
+}) => {
+  if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
+    const error = new Error("Invalid refund amount");
+    error.code = "INVALID_REFUND_AMOUNT";
+    throw error;
+  }
+
+  const options = idempotencyKey ? { idempotencyKey } : {};
+
+  return getStripeClient().refunds.create(
+    {
+      payment_intent: stripePaymentIntentId,
+      amount: amountMinor,
+      reason,
+      metadata,
+    },
+    options
+  );
+};
+
+export const retrieveStripeRefund = async (refundId) => {
+  return getStripeClient().refunds.retrieve(refundId);
+};
+
+export const listStripeRefunds = async (stripePaymentIntentId) => {
+  if (!stripePaymentIntentId) return [];
+
+  const response = await getStripeClient().refunds.list({
+    payment_intent: stripePaymentIntentId,
+    limit: 100,
+  });
+
+  return response.data || [];
+};
+
 export const constructStripeWebhookEvent = (
   rawBody,
   signature

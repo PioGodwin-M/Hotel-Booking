@@ -2,6 +2,7 @@
 import { Router } from "express";
 
 import authenticate from "../middleware/authMiddleware.js";
+import noCache from "../middleware/noCacheMiddleware.js";
 
 import {
   getMyProfile,
@@ -13,7 +14,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get("/me", getMyProfile);
+router.get("/me", noCache, getMyProfile);
 
 router.patch("/me", updateMyProfile);
 

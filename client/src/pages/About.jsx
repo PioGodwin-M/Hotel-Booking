@@ -1,126 +1,183 @@
-import React from 'react';
-import { FaAward, FaHeadset, FaSearchDollar, FaCheckCircle } from 'react-icons/fa';
-import journeyImage from '../assets/journey.jpg';
-// --- Team Member Card Component ---
-const TeamMember = ({ imgSrc, name, title }) => (
-  <div className="text-center">
-    <img
-      src={imgSrc}
-      alt={name}
-      className="mx-auto h-40 w-40 rounded-full object-cover shadow-lg transform transition-transform duration-300 hover:scale-105"
-    />
-    <h3 className="mt-4 text-xl font-semibold text-gray-800">{name}</h3>
-    <p className="text-md text-gray-500">{title}</p>
+import React from "react";
+import { Link } from "react-router-dom";
+import {
+  ShieldCheck,
+  Award,
+  Headphones,
+  CheckCircle2,
+  ArrowRight,
+  Clock,
+} from "lucide-react";
+import { Button } from "../components/ui/Button";
+import { SafeImage } from "../components/ui";
+import { usePageTitle } from "../hooks/usePageTitle";
+import { BRAND_NAME, HOLD_DURATION_TEXT } from "../config/brand";
+
+const InitialsAvatar = ({ initials, name, title }) => (
+  <div className="text-center group">
+    <div className="mx-auto h-28 w-28 rounded-full bg-[#f0ede6] dark:bg-white/10 border-2 border-[#e7e5e0] dark:border-white/15 flex items-center justify-center text-2xl font-bold text-[#0b1220] dark:text-[#faf8f5] shadow-xs group-hover:border-[#0b1220] dark:group-hover:border-white transition-colors">
+      <span>{initials}</span>
+    </div>
+    <h3 className="mt-4 text-lg font-semibold text-[#0b1220] dark:text-[#faf8f5]">
+      {name}
+    </h3>
+    <p className="text-xs text-stone-500 dark:text-stone-400 font-medium mt-0.5">
+      {title}
+    </p>
   </div>
 );
 
-// --- Feature Card Component ---
 const FeatureCard = ({ icon, title, description }) => (
-  <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-    <div className="text-4xl text-blue-600 mb-4">{icon}</div>
-    <h3 className="text-xl font-bold text-gray-800 mb-2">{title}</h3>
-    <p className="text-gray-600">{description}</p>
+  <div className="p-6 rounded-xl bg-white dark:bg-[#151d30] border border-[#e7e5e0] dark:border-white/10 shadow-2xs text-left space-y-2.5">
+    <div className="w-10 h-10 rounded-lg bg-[#f0ede6] dark:bg-white/10 text-[#0b1220] dark:text-[#faf8f5] flex items-center justify-center">
+      {icon}
+    </div>
+    <h3 className="text-base font-semibold text-[#0b1220] dark:text-[#faf8f5]">
+      {title}
+    </h3>
+    <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+      {description}
+    </p>
   </div>
 );
 
-// --- Main About Us Page Component ---
-const About = () => {
+export const About = () => {
+  usePageTitle(
+    `About Us`,
+    `Learn about ${BRAND_NAME}, our mission to make booking quality stays straightforward and reliable.`
+  );
+
   return (
-    <div className="bg-gray-50 font-sans">
+    <div className="pt-20 pb-16">
       {/* Hero Section */}
       <section
-        className="relative bg-cover bg-center text-white py-40 px-4"
-        style={{ backgroundImage: "url('https://i.pinimg.com/originals/a7/63/a2/a763a25d2c76a16229b1dd052d0b8f44.jpg')" }}
+        className="relative bg-cover bg-center text-white py-24 md:py-32 text-center overflow-hidden"
+        style={{
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2000&q=85')",
+        }}
       >
-        <div className="absolute inset-0 bg-black opacity-50"></div>
-        <div className="relative container mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight animate-fade-in-down">
-            About QuickStay
+        <div className="absolute inset-0 bg-[#0b1220]/75" />
+        <div className="page-container relative z-10 max-w-3xl space-y-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
+            Making Great Stays Simple and Reliable
           </h1>
-          <p className="mt-4 text-xl md:text-2xl max-w-3xl mx-auto animate-fade-in-up">
-            Crafting unforgettable travel experiences, one booking at a time.
+          <p className="text-sm sm:text-base text-stone-200 max-w-xl mx-auto leading-relaxed">
+            We help travellers discover comfortable hotel rooms and vacation stays with clear pricing and zero hassle.
           </p>
         </div>
       </section>
 
       {/* Our Story Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-6 lg:px-20">
-          <div className="flex flex-col lg:flex-row items-center gap-12">
-            <div className="lg:w-1/2">
-              <img
-                src={journeyImage}
-                alt="Our Journey"
-                className="rounded-lg shadow-2xl w-full h-auto object-cover"
-              />
-            </div>
-            <div className="lg:w-1/2">
-              <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Story 📖</h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
-                Founded in 2025 by a group of passionate travelers, **QuickStay** was born from a simple idea: booking a hotel should be as delightful as the stay itself. We were tired of confusing websites and hidden fees. We envisioned a platform that was transparent, beautiful, and dedicated to helping people discover their perfect getaway.
-              </p>
-              <p className="text-gray-700 leading-relaxed">
-                From a small startup to a trusted name in travel, our mission has remained the same: to connect travelers with exceptional accommodations and create memories that last a lifetime. We believe travel enriches our lives, and we're here to make it accessible and enjoyable for everyone.
-              </p>
-            </div>
+      <section className="py-16 md:py-20 page-container">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+          <div className="relative rounded-2xl overflow-hidden shadow-sm aspect-[4/3] bg-stone-100 dark:bg-stone-800">
+            <SafeImage
+              src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80"
+              alt="Comfortable, sunlit modern stay interior"
+              fallbackLabel="PGM Stays Interior"
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          <div className="space-y-4 text-left">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
+              Built for everyday travellers who value peace of mind
+            </h2>
+            <p className="text-sm sm:text-base text-stone-600 dark:text-stone-300 leading-relaxed">
+              We started <strong>{BRAND_NAME}</strong> with a simple goal: booking a hotel should be transparent, fast, and completely dependable. No misleading photos, no hidden resort fees at checkout, and no complicated jargon.
+            </p>
+            <p className="text-sm sm:text-base text-stone-600 dark:text-stone-300 leading-relaxed">
+              Every property listed on our platform is checked for cleanliness, genuine amenities, and friendly host service. Whether you are traveling for work, a weekend trip, or a family holiday, we make sure your stay is comfortable.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Why Choose Us Section */}
-      <section className="bg-blue-50 py-20">
-        <div className="container mx-auto px-6 lg:px-20 text-center">
-          <h2 className="text-4xl font-bold text-gray-800 mb-3">Why Choose Us? ✨</h2>
-          <p className="text-gray-600 text-lg mb-12 max-w-2xl mx-auto">
-            We go the extra mile to ensure your booking experience is seamless and rewarding.
+      {/* Why Choose Us */}
+      <section className="py-16 bg-[#faf9f6] dark:bg-[#151d30]/50 border-y border-[#e7e5e0] dark:border-white/10">
+        <div className="page-container text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
+            Why Travelers Choose {BRAND_NAME}
+          </h2>
+          <p className="mt-2 text-xs sm:text-sm text-stone-600 dark:text-stone-400 max-w-md mx-auto">
+            Everything you need for a smooth and comfortable hotel booking.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
             <FeatureCard
-              icon={<FaSearchDollar />}
-              title="Best Price Guarantee"
-              description="Find the best deals and save more. We guarantee the lowest prices on all our listings."
+              icon={<Award className="w-5 h-5 text-[#0b1220] dark:text-white" />}
+              title="Quality Stays"
+              description="Clean rooms, accurate photos, and amenities verified before listing."
             />
             <FeatureCard
-              icon={<FaAward />}
-              title="Curated Selection"
-              description="Every hotel is hand-picked and vetted by our team to ensure quality and comfort."
+              icon={<Clock className="w-5 h-5 text-[#0b1220] dark:text-white" />}
+              title={`${HOLD_DURATION_TEXT} Hold`}
+              description={`When you reserve, your room is held for ${HOLD_DURATION_TEXT} while you complete payment.`}
             />
             <FeatureCard
-              icon={<FaHeadset />}
-              title="24/7 Support"
-              description="Our dedicated support team is here to help you around the clock, anytime, anywhere."
+              icon={<Headphones className="w-5 h-5 text-[#0b1220] dark:text-white" />}
+              title="Help When You Need It"
+              description="Dedicated customer support to assist with check-in questions or booking changes."
             />
             <FeatureCard
-              icon={<FaCheckCircle />}
-              title="Seamless Booking"
-              description="Enjoy a hassle-free booking process with our secure and user-friendly platform."
+              icon={<CheckCircle2 className="w-5 h-5 text-[#0b1220] dark:text-white" />}
+              title="Clear Pricing"
+              description="Taxes and service fees are included upfront. What you see is what you pay."
             />
           </div>
         </div>
       </section>
 
-      {/* Meet the Team Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-6 lg:px-20 text-center">
-          <h2 className="text-4xl font-bold text-gray-800 mb-12">Meet Our Team 👋</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-            <TeamMember imgSrc="https://www.shutterstock.com/image-photo/successful-company-with-happy-workers-260nw-1662211225.jpg" name="Pio Godwin M" title="CEO & Founder" />
-            <TeamMember imgSrc="https://www.shutterstock.com/image-photo/portrait-young-smiling-man-arm-260nw-1299946255.jpg" name="Kamalesh M" title="Head of Technology" />
-            <TeamMember imgSrc="https://www.freepik.com/free-photo/smiling-young-male-professional-standing-with-arms-crossed-while-making-eye-contact-against-isolated-background_27507898.htm#fromView=keyword&page=1&position=0&uuid=03e913e3-143d-47bf-85f8-845410344920&query=Professional" name="Raghunath S" title="Director of Hospitality" />
-          </div>
+      {/* Leadership Section with initials avatars */}
+      <section className="py-16 page-container text-center">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
+          Our Team
+        </h2>
+        <p className="mt-2 text-xs sm:text-sm text-stone-600 dark:text-stone-400">
+          The team working behind {BRAND_NAME} to make your trips better.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-12">
+          <InitialsAvatar
+            initials="PG"
+            name="Pio Godwin M"
+            title="Founder & Product Lead"
+          />
+          <InitialsAvatar
+            initials="KM"
+            name="Kamalesh M"
+            title="Engineering Lead"
+          />
+          <InitialsAvatar
+            initials="RS"
+            name="Raghunath S"
+            title="Host & Partner Operations"
+          />
         </div>
       </section>
 
-      {/* Call to Action Section */}
-      <section className="bg-blue-600 text-white py-20">
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold mb-4">Ready for Your Next Adventure?</h2>
-          <p className="text-lg mb-8 max-w-xl mx-auto">
-            Your dream destination is just a few clicks away. Let's find your perfect stay.
+      {/* CTA Banner */}
+      <section className="page-container pb-10">
+        <div className="rounded-2xl bg-[#0b1220] text-white p-8 md:p-12 text-center space-y-4">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Ready to find your next stay?
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-300 max-w-md mx-auto">
+            Browse our rooms across popular destinations. Reserve now and pay to confirm.
           </p>
-          <button className="bg-white text-blue-600 font-bold py-3 px-8 rounded-full text-lg hover:bg-blue-100 transition-colors duration-300 shadow-lg">
-            Explore Hotels
-          </button>
+          <div className="pt-2">
+            <Link to="/rooms">
+              <Button
+                variant="secondary"
+                size="md"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+              >
+                Browse All Stays
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
     </div>

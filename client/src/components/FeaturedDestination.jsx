@@ -1,38 +1,73 @@
-import React from 'react';
-import { useAppContext } from '../context/AppContext';
-import HotelCard from './HotelCard';
-import Title from './Title';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
+import { ArrowUpRight } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { MOCK_POPULAR_DESTINATIONS } from "../data/mock";
+import { SafeImage } from "./ui";
 
-const FeaturedDestination = () => {
-  const { rooms } = useAppContext();
-  const navigate = useNavigate();
-
-  if (!Array.isArray(rooms) || rooms.length === 0) {
-    return null;
-  }
+export const FeaturedDestination = () => {
+  const shouldReduceMotion = useReducedMotion();
+  const destinations = MOCK_POPULAR_DESTINATIONS;
 
   return (
-    <div className='flex flex-col items-center px-6 md:px-16 lg:px-24 bg-slate-50 py-20'>
-      <Title
-        title='Featured Destinations'
-        subTitle='Discover our handpicked selection of exceptional properties around the world, offering unparalleled luxury and unforgettable experiences'
-      />
-      <div className='flex flex-wrap justify-center gap-6 mt-16'>
-        {rooms.slice(0, 4).map((room, index) => (
-          <HotelCard key={room._id} room={room} index={index} />
-        ))}
+    <section className="py-16 md:py-20 bg-[#faf9f6] dark:bg-[#151d30]/30 border-t border-[#e7e5e0] dark:border-white/10 text-left">
+      <div className="page-container">
+        <div className="mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
+            Popular destinations
+          </h2>
+          <p className="mt-1 text-xs sm:text-sm text-stone-600 dark:text-stone-400">
+            Explore top holiday spots and city destinations with comfortable stays.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {destinations.map((dest) => (
+            <motion.div
+              key={dest.name}
+              whileHover={
+                shouldReduceMotion
+                  ? undefined
+                  : { y: -3, transition: { duration: 0.15 } }
+              }
+              className="group relative rounded-xl overflow-hidden aspect-[3/4] cursor-pointer shadow-2xs hover:shadow-md transition-shadow bg-stone-200"
+            >
+              <Link
+                to={`/rooms?destination=${encodeURIComponent(dest.name)}`}
+                className="block w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <SafeImage
+                  src={dest.image}
+                  alt={dest.name}
+                  fallbackLabel={dest.name}
+                  loading="lazy"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+
+                <div className="absolute bottom-0 inset-x-0 p-5 flex items-end justify-between text-white">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-300">
+                      {dest.country}
+                    </p>
+                    <h3 className="text-xl font-bold mt-0.5">
+                      {dest.name}
+                    </h3>
+                    <p className="text-xs text-stone-300 mt-0.5">
+                      {dest.count} stays available
+                    </p>
+                  </div>
+
+                  <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center text-white group-hover:bg-white group-hover:text-[#0b1220] transition-colors">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
       </div>
-      <button
-        className='mt-12 px-6 py-2.5 text-sm font-medium border border-gray-300 rounded-full bg-white hover:bg-gray-50 transition-all cursor-pointer shadow-xs'
-        onClick={() => {
-          navigate('/rooms');
-          window.scrollTo(0, 0);
-        }}
-      >
-        View All Destinations
-      </button>
-    </div>
+    </section>
   );
 };
 

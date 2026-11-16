@@ -24,8 +24,36 @@ const app = express();
 
 const PORT = process.env.PORT || 4001;
 
+const getAllowedOrigins = () => {
+  const configured = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL;
+  if (configured) {
+    return configured.split(",").map((o) => o.trim()).filter(Boolean);
+  }
+  if (process.env.NODE_ENV !== "production") {
+    return ["http://localhost:5173", "http://127.0.0.1:5173"];
+  }
+  return [];
+};
+
+const allowedOrigins = getAllowedOrigins();
+
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (
+        process.env.NODE_ENV !== "production" &&
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+    },
+    credentials: true,
+  })
+);
 app.use(morgan("dev"));
 
 // Public health endpoint.

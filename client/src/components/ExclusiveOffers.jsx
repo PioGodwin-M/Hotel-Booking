@@ -1,49 +1,117 @@
-import React from 'react'
-import Title from './Title'
-import { assets, exclusiveOffers } from '../assets/assets'
-import { Link } from 'react-router-dom'
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight, Copy, Check } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import toast from "react-hot-toast";
+import { MOCK_EXCLUSIVE_OFFERS, SHOW_SAMPLE_DATA_LABELS } from "../data/mock";
+import { Badge } from "./ui/Badge";
+import { SafeImage } from "./ui";
 
-const ExclusiveOffers = () => {
+export const ExclusiveOffers = () => {
+  const shouldReduceMotion = useReducedMotion();
+  const offers = MOCK_EXCLUSIVE_OFFERS;
+  const [copiedCode, setCopiedCode] = useState(null);
+
+  const handleCopy = (code) => {
+    navigator.clipboard?.writeText(code);
+    setCopiedCode(code);
+    toast.success("Code copied");
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
   return (
-    <div className='flex flex-col items-center px-6 md:px-16 lg:px-24 xl:px-32 pt-20 pb-30'>
-      <div className='flex flex-col md:flex-row items-center justify-between w-full'>
-        <Title
-          align='left'
-          title='Exclusive Offers'
-          subTitle='Take advantage of our limited-time offers and special packages to enhance your stay and create unforgettable memories'
-        />
-        <button className='group flex item-center gap-2 font-medium cursor-pointer max-md:mt-12'>
-          View All Offers
-          <img src={assets.arrowIcon} alt="arrow-icon" className='group-hover:translate-x-1 transition-all'/>
-        </button>
+    <section className="py-16 md:py-20 page-container text-left">
+      <div className="mb-8 flex items-end justify-between flex-wrap gap-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
+              Special Offers & Deals
+            </h2>
+            {SHOW_SAMPLE_DATA_LABELS && (
+              <Badge variant="neutral" size="sm">
+                Sample offers
+              </Badge>
+            )}
+          </div>
+          <p className="mt-1 text-xs sm:text-sm text-stone-600 dark:text-stone-400">
+            Save on your next trip with these promotional discounts.
+          </p>
+        </div>
       </div>
 
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12'>
-        {exclusiveOffers.map((item) => (
-          <Link 
-            key={item._id} 
-            to={`/rooms`}  // 👈 navigate to hotel page
-            onClick={() => scrollTo(0, 0)} 
-            className='group relative flex flex-col items-start justify-between gap-1 pt-12 md:pt-18 px-4 rounded-xl text-white bg-no-repeat bg-cover bg-center cursor-pointer transition-transform duration-300 hover:-translate-y-2 hover:shadow-lg'
-            style={{ backgroundImage: `url(${item.image})` }}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {offers.map((offer) => (
+          <motion.div
+            key={offer._id}
+            whileHover={
+              shouldReduceMotion
+                ? undefined
+                : { y: -3, transition: { duration: 0.15 } }
+            }
+            className="group relative rounded-xl overflow-hidden bg-white dark:bg-[#151d30] border border-[#e7e5e0] dark:border-white/10 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between"
           >
-            <p className='px-3 py-1 absolute top-4 left-4 text-xs bg-white text-gray-800 font-medium rounded-full'>
-              {item.priceOff}% OFF
-            </p>
-            <div>
-              <p className='text-2xl font-medium font-playfair'>{item.title}</p>
-              <p>{item.description}</p>
-              <p className='text-xs text-white/70 mt-3'>Expires {item.expiryDate}</p>
+            {/* Image banner */}
+            <div className="relative aspect-[16/10] overflow-hidden bg-stone-100">
+              <SafeImage
+                src={offer.image}
+                alt={offer.title}
+                fallbackLabel={offer.title}
+                loading="lazy"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+              />
+              <div className="absolute top-3 right-3">
+                <span className="px-2.5 py-0.5 rounded-[6px] text-xs font-bold bg-rose-600 text-white shadow-2xs">
+                  {offer.priceOff}% OFF
+                </span>
+              </div>
             </div>
-            <button className='flex items-center gap-2 font-medium mt-4 mb-5'>
-              View Offers
-              <img src={assets.arrowIcon} className='invert group-hover:translate-x-1 transition-all' alt="arrow-Icon"/>
-            </button>
-          </Link>
+
+            {/* Content */}
+            <div className="p-5 flex flex-col justify-between flex-1 gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-[#0b1220] dark:text-[#faf8f5]">
+                  {offer.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 mt-1.5 leading-relaxed">
+                  {offer.description}
+                </p>
+                <p className="text-sm font-medium text-stone-700 dark:text-stone-300 mt-2.5">
+                  {offer.expiryDate}
+                </p>
+              </div>
+
+              {/* Dashed Coupon Box with Copy Button */}
+              <div className="pt-3 border-t border-[#e7e5e0] dark:border-white/10 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCopy(offer.code)}
+                  aria-label={`Copy coupon code ${offer.code}`}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-white/5 text-xs font-mono font-semibold text-[#0b1220] dark:text-[#faf8f5] hover:bg-stone-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  {copiedCode === offer.code ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 text-stone-500" />
+                  )}
+                  <span>{offer.code}</span>
+                  <span className="text-[11px] font-sans font-medium text-stone-500 pl-1 border-l border-stone-200 dark:border-stone-700">
+                    {copiedCode === offer.code ? "Copied" : "Copy"}
+                  </span>
+                </button>
+
+                <Link
+                  to="/rooms"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#0b1220] dark:text-white hover:underline"
+                >
+                  View stays <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </motion.div>
         ))}
       </div>
-    </div>
-  )
-}
+    </section>
+  );
+};
 
-export default ExclusiveOffers
+export default ExclusiveOffers;

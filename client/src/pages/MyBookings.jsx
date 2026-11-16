@@ -1,57 +1,124 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import Title from '../components/Title';
-import { assets } from '../assets/assets';
-import { useAppContext } from '../context/AppContext';
-import { authApi } from '../lib/apiClient';
-import PaymentModal from '../components/PaymentModal';
-import toast from 'react-hot-toast';
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Calendar,
+  MapPin,
+  Users,
+  CreditCard,
+  FileText,
+  AlertTriangle,
+  Clock,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import toast from "react-hot-toast";
+import { assets } from "../assets/assets";
+import { useAppContext } from "../context/AppContext";
+import { authApi } from "../lib/apiClient";
+import PaymentModal from "../components/PaymentModal";
+import ReceiptModal from "../components/ReceiptModal";
+import BookingSuccessModal from "../components/BookingSuccessModal";
+import ErrorBoundary from "../components/ErrorBoundary";
+import { Button } from "../components/ui/Button";
+import { Badge } from "../components/ui/Badge";
+import { Tabs } from "../components/ui/Tabs";
+import { Modal } from "../components/ui/Modal";
+import { EmptyState } from "../components/ui/EmptyState";
+import { SafeImage } from "../components/ui";
+import { usePageTitle } from "../hooks/usePageTitle";
+import { formatINR } from "../lib/formatters";
+import { showErrorToast } from "../lib/toast";
+import { HOLD_DURATION_TEXT } from "../config/brand";
 
-const MyBookings = () => {
+export const MyBookings = () => {
+  usePageTitle(
+    "My Bookings",
+    "View and manage your upcoming, past, and cancelled hotel bookings."
+  );
   const { user, rooms, currency } = useAppContext();
+  const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
+
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState(null);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("upcoming");
+
+  // Payment modal state
+  const [activePayment, setActivePayment] = useState(null);
   const [initiatingPaymentId, setInitiatingPaymentId] = useState(null);
 
-  // State for active Stripe payment modal
-  const [activePayment, setActivePayment] = useState(null);
+  // Receipt modal state
+  const [receiptBooking, setReceiptBooking] = useState(null);
 
+  // Success celebration modal state
+  const [successBooking, setSuccessBooking] = useState(null);
+
+  // Cancellation dialog state
+  const [cancellingBooking, setCancellingBooking] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  // Fetch bookings from Booking Service
   const fetchBookings = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Microservices: GET /api/bookings/?page=1&limit=50 via API Gateway
-      const { data } = await authApi.get('/api/bookings/?page=1&limit=50');
+      const { data } = await authApi.get("/api/bookings/?page=1&limit=50");
       if (data.success) {
         setBookings(data.bookings || []);
       } else {
-        toast.error(data.message || 'Could not fetch your bookings');
+        const msg = data.message || "Could not retrieve bookings";
+        setError(msg);
+        showErrorToast(msg, { id: "my-bookings-load-error", onRetry: () => fetchBookings() });
       }
-    } catch (error) {
-      const msg =
-        error.response?.data?.message || error.message || 'Failed to fetch bookings';
-      toast.error(msg);
+    } catch {
+      const msg = "We couldn't load your bookings. Please try again.";
+      setError(msg);
+      showErrorToast(msg, {
+        id: "my-bookings-load-error",
+        onRetry: () => fetchBookings(),
+      });
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Initiate payment with Payment Service via API Gateway
+  // 10s watchdog timeout to replace perpetual skeleton with inline error
+  useEffect(() => {
+    let timer;
+    if (loading) {
+      timer = setTimeout(() => {
+        setLoading(false);
+        setError("Request timed out. We couldn't load your bookings.");
+      }, 10000);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  useEffect(() => {
+    if (user) {
+      fetchBookings();
+    }
+  }, [user, fetchBookings]);
+
+  // Initiate Stripe Payment
   const handlePayment = async (booking) => {
     if (initiatingPaymentId) return;
     setInitiatingPaymentId(booking._id);
 
     try {
-      // Deterministic payment idempotency key derived from booking ID.
-      // Ensures retries for the same booking reuse the same key and do not trigger PAYMENT_ID_MISMATCH,
-      // while separate bookings receive distinct keys.
+      // Deterministic idempotency key derived from booking ID.
       const idempotencyKey = `pay_booking_${booking._id}`;
 
       const { data } = await authApi.post(
-        '/api/payments/',
+        "/api/payments/",
         { bookingId: booking._id },
         {
           headers: {
-            'Idempotency-Key': idempotencyKey,
+            "Idempotency-Key": idempotencyKey,
           },
         }
       );
@@ -61,206 +128,353 @@ const MyBookings = () => {
           bookingId: booking._id,
           clientSecret: data.data.clientSecret,
           amountMinor: data.data.amountMinor,
-          currency: data.data.currency || 'INR',
+          currency: data.data.currency || "INR",
+          booking,
         });
       } else {
-        toast.error(data.message || 'Payment initiation failed');
+        toast.error(data.message || "Payment session could not be established");
       }
-    } catch (error) {
+    } catch (err) {
       toast.error(
-        error.response?.data?.message || error.message || 'Payment could not be started'
+        err.response?.data?.message ||
+          err.message ||
+          "Payment session could not be started"
       );
     } finally {
       setInitiatingPaymentId(null);
     }
   };
 
-  // Cancel booking hold via PATCH /api/bookings/:bookingId/cancel
-  const handleCancel = async (bookingId) => {
-    if (cancellingId) return;
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+  // Perform confirmed cancellation (ONLY permitted for HELD bookings)
+  const confirmCancel = async () => {
+    if (!cancellingBooking || isCancelling) return;
+    setIsCancelling(true);
 
-    setCancellingId(bookingId);
     try {
-      const { data } = await authApi.patch(`/api/bookings/${bookingId}/cancel`);
+      const { data } = await authApi.patch(
+        `/api/bookings/${cancellingBooking._id}/cancel`
+      );
       if (data.success) {
-        toast.success(data.message || 'Booking cancelled successfully');
+        toast.success("Booking cancelled and room released");
+        setCancellingBooking(null);
         fetchBookings();
       } else {
-        toast.error(data.message || 'Could not cancel booking');
+        toast.error(data.message || "Could not cancel booking");
       }
-    } catch (error) {
+    } catch (err) {
       toast.error(
-        error.response?.data?.message || error.message || 'Cancellation failed'
+        err.response?.data?.message || err.message || "Cancellation failed"
       );
     } finally {
-      setCancellingId(null);
+      setIsCancelling(false);
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchBookings();
-    }
-  }, [user, fetchBookings]);
+  // Filter bookings into tabs: Upcoming, Past, Cancelled
+  const todayDate = useMemo(() => new Date().toISOString().split("T")[0], []);
+
+  const categorizedBookings = useMemo(() => {
+    const upcoming = [];
+    const past = [];
+    const cancelled = [];
+
+    bookings.forEach((b) => {
+      if (b.status === "CANCELLED") {
+        cancelled.push(b);
+      } else if (
+        b.status === "CONFIRMED" &&
+        b.checkOut &&
+        b.checkOut.split("T")[0] < todayDate
+      ) {
+        past.push(b);
+      } else if (b.status === "EXPIRED" || b.status === "PAYMENT_FAILED") {
+        past.push(b);
+      } else {
+        upcoming.push(b);
+      }
+    });
+
+    return { upcoming, past, cancelled };
+  }, [bookings, todayDate]);
+
+  const currentBookings = categorizedBookings[activeTab] || [];
+
+  const tabItems = [
+    { id: "upcoming", label: "Upcoming", count: categorizedBookings.upcoming.length },
+    { id: "past", label: "Past stays", count: categorizedBookings.past.length },
+    { id: "cancelled", label: "Cancelled", count: categorizedBookings.cancelled.length },
+  ];
 
   return (
-    <div className="py-28 md:pb-35 md:pt-32 px-4 md:px-16 lg:px-24 xl:px-32">
-      <Title
-        title="My Bookings"
-        subTitle="Easily manage your past, current, and upcoming hotel reservations in one place. Plan your trips seamlessly with just a few clicks"
-        align="left"
-      />
-
-      <div className="max-w-6xl mt-8 w-full text-gray-800">
-        <div className="hidden md:grid md:grid-cols-[3fr_2fr_1.2fr] w-full border-b border-gray-300 font-medium text-base py-3">
-          <div>Hotels</div>
-          <div>Date & Timings</div>
-          <div>Payment & Status</div>
+    <div className="pt-24 md:pt-32 pb-28 page-container">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200 dark:border-gray-800">
+        <div>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            My bookings
+          </h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 max-w-xl">
+            View your upcoming and past stays, complete pending payments, and download receipts.
+          </p>
         </div>
 
-        {loading ? (
-          <div className="py-16 text-center text-gray-500">
-            Loading your bookings...
+        {/* Tab Pills */}
+        <div className="self-start md:self-end">
+          <Tabs
+            tabs={tabItems}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            variant="pill"
+          />
+        </div>
+      </div>
+
+      {/* Bookings List */}
+      <div className="mt-6 space-y-4">
+        <h2 className="sr-only">Your Bookings Overview</h2>
+        {error ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 p-6 text-center space-y-3 my-6"
+          >
+            <AlertTriangle className="w-8 h-8 text-rose-500 mx-auto" />
+            <div>
+              <h3 className="font-bold text-sm text-[#0b1220] dark:text-[#faf8f5]">Could not load bookings</h3>
+              <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">{error}</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => fetchBookings()}>
+              Retry
+            </Button>
           </div>
-        ) : bookings.length === 0 ? (
-          <div className="py-16 text-center text-gray-500 bg-gray-50 rounded-lg mt-4 border border-gray-200">
-            <p className="font-medium text-gray-700">No bookings found</p>
-            <p className="text-sm mt-1 text-gray-400">
-              When you reserve a room, it will appear here.
-            </p>
+        ) : loading ? (
+          <div className="py-20 text-center text-sm text-gray-500 flex flex-col items-center gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-gray-900 dark:border-white border-t-transparent animate-spin" />
+            <span>Loading your bookings...</span>
           </div>
+        ) : currentBookings.length === 0 ? (
+          <EmptyState
+            title={
+              activeTab === "upcoming"
+                ? "No upcoming stays"
+                : activeTab === "past"
+                ? "No past stays"
+                : "No cancelled bookings"
+            }
+            description={
+              activeTab === "upcoming"
+                ? "You don't have any upcoming trips booked. Discover a stay for your next trip."
+                : activeTab === "past"
+                ? "Completed stays will appear here after checkout."
+                : "Cancelled bookings will appear here."
+            }
+            actionLabel={activeTab === "upcoming" ? "Browse stays" : undefined}
+            onAction={activeTab === "upcoming" ? () => navigate("/rooms") : undefined}
+            className="my-10"
+          />
         ) : (
-          bookings.map((booking) => {
-            // Find enriched catalog room info from context
+          currentBookings.map((booking, idx) => {
             const matchedRoom = Array.isArray(rooms)
               ? rooms.find((r) => r._id === booking.roomCategoryId)
               : null;
 
             const hotelName =
-              matchedRoom?.hotel?.name || booking.hotel?.name || 'Hotel Stay';
+              matchedRoom?.hotel?.name || booking.hotel?.name || "Hotel";
             const hotelAddress =
               matchedRoom?.hotel?.address ||
               booking.hotel?.address ||
-              'Address available on confirmation';
+              booking.hotel?.city ||
+              "Location";
             const roomType =
-              matchedRoom?.roomType || booking.room?.roomType || 'Standard Room';
+              matchedRoom?.roomType || booking.room?.roomType || "Standard Room";
             const roomImage =
               matchedRoom?.images?.[0] ||
               booking.room?.images?.[0] ||
               assets.roomImg1;
 
-            const checkInDate = booking.checkIn || booking.checkInDate;
-            const checkOutDate = booking.checkOut || booking.checkOutDate;
+            const checkIn = booking.checkIn || booking.checkInDate;
+            const checkOut = booking.checkOut || booking.checkOutDate;
             const guestCount = booking.numberOfGuests || booking.guests || 1;
-            const totalPrice =
+            const totalAmount =
               booking.priceSnapshot?.totalAmount ?? booking.totalPrice ?? 0;
 
-            const isPaid = booking.status === 'CONFIRMED' || booking.isPaid;
-            const canPay =
-              booking.status === 'HELD' ||
-              booking.status === 'PAYMENT_PENDING' ||
-              (!isPaid && booking.status !== 'CANCELLED' && booking.status !== 'EXPIRED');
-            // Customer cancellation is strictly permitted only when booking status is 'HELD'.
-            // PAYMENT_PENDING, CONFIRMED, CANCELLED, EXPIRED, and PAYMENT_FAILED cannot be cancelled by customer.
-            const canCancel = booking.status === 'HELD';
+            const isConfirmed = booking.status === "CONFIRMED";
+            const isHeld = booking.status === "HELD";
+            const isPaymentPending = booking.status === "PAYMENT_PENDING";
+            const isCancelled = booking.status === "CANCELLED";
+
+            // Payment is possible if HELD or PAYMENT_PENDING
+            const canPay = isHeld || isPaymentPending;
+            // Customer cancellation is strictly permitted only when booking status is 'HELD'
+            const canCancel = isHeld;
 
             return (
-              <div
+              <motion.div
                 key={booking._id}
-                className="grid grid-cols-1 md:grid-cols-[3fr_2fr_1.2fr] w-full border-b border-gray-300 py-6 first:border-t gap-4"
+                initial={
+                  shouldReduceMotion ? undefined : { opacity: 0, y: 8 }
+                }
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: idx * 0.04 }}
+                className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-2xs hover:border-gray-300 dark:hover:border-gray-700 transition-all p-5 sm:p-6"
               >
-                {/* Hotel Details */}
-                <div className="flex flex-col md:flex-row">
-                  <img
-                    src={roomImage}
-                    alt="hotel-img"
-                    className="w-full md:w-44 h-32 rounded shadow object-cover"
-                  />
-                  <div className="flex flex-col gap-1.5 max-md:mt-3 md:ml-4">
-                    <p className="font-playfair text-2xl">
-                      {hotelName}
-                      <span className="text-sm font-inter text-gray-500">
-                        {' '}
-                        ({roomType})
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+                  {/* Col 1: Photo & Hotel Info */}
+                  <div className="lg:col-span-5 flex flex-col sm:flex-row gap-4 items-start">
+                    <div className="w-full sm:w-32 h-24 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shrink-0">
+                      <SafeImage
+                        src={roomImage}
+                        alt={hotelName}
+                        fallbackLabel={hotelName}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Badge
+                          variant={
+                            isConfirmed
+                              ? "confirmed"
+                              : isHeld
+                              ? "held"
+                              : isPaymentPending
+                              ? "pending"
+                              : isCancelled
+                              ? "cancelled"
+                              : "failed"
+                          }
+                          size="sm"
+                          dot
+                        >
+                          {isConfirmed
+                            ? "Confirmed"
+                            : isHeld
+                            ? `Payment pending (${HOLD_DURATION_TEXT} hold)`
+                            : isPaymentPending
+                            ? "Processing"
+                            : isCancelled
+                            ? "Cancelled"
+                            : "Expired"}
+                        </Badge>
+                      </div>
+
+                      <h3
+                        className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 truncate"
+                        title={hotelName}
+                      >
+                        {hotelName}
+                      </h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                        {roomType} &middot; {guestCount} {guestCount === 1 ? "guest" : "guests"}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <span className="truncate">{hotelAddress}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Col 2: Dates & Total */}
+                  <div className="lg:col-span-4 py-3 sm:py-0 border-y lg:border-y-0 lg:border-x border-gray-200 dark:border-gray-800 lg:px-6">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                          Check in
+                        </p>
+                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mt-0.5">
+                          {checkIn
+                            ? new Date(checkIn).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : "—"}
+                        </p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          From 2:00 PM
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                          Check out
+                        </p>
+                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mt-0.5">
+                          {checkOut
+                            ? new Date(checkOut).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : "—"}
+                        </p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          Until 11:00 AM
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Total amount
                       </span>
-                    </p>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <img src={assets.locationIcon} alt="Location" className="h-4" />
-                      <span>{hotelAddress}</span>
+                      <span className="font-bold text-base text-gray-900 dark:text-gray-100 tabular-nums">
+                        {formatINR(totalAmount)}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <img src={assets.guestsIcon} alt="Guests" className="h-4" />
-                      <span>Guests: {guestCount}</span>
-                    </div>
-                    <p className="text-base font-semibold text-gray-900 mt-1">
-                      Total: {currency} {totalPrice}
-                    </p>
+                  </div>
+
+                  {/* Col 3: Actions */}
+                  <div className="lg:col-span-3 flex flex-col gap-2 items-start lg:items-end justify-center">
+                    {/* Pay Now Button */}
+                    {canPay && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handlePayment(booking)}
+                        disabled={initiatingPaymentId === booking._id}
+                        isLoading={initiatingPaymentId === booking._id}
+                        loadingText="Starting..."
+                        className="w-full sm:w-auto font-semibold"
+                        leftIcon={<CreditCard className="w-3.5 h-3.5" />}
+                      >
+                        Complete payment
+                      </Button>
+                    )}
+
+                    {/* Cancel Hold Button (ONLY for HELD bookings) */}
+                    {canCancel && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setCancellingBooking(booking)}
+                        className="w-full sm:w-auto text-xs"
+                      >
+                        Cancel hold
+                      </Button>
+                    )}
+
+                    {/* View Official Receipt */}
+                    {isConfirmed && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReceiptBooking(booking)}
+                        className="w-full sm:w-auto text-xs"
+                        leftIcon={<FileText className="w-3.5 h-3.5 text-gray-500" />}
+                      >
+                        View receipt
+                      </Button>
+                    )}
+
+                    {isCancelled && (
+                      <p className="text-xs text-gray-400 flex items-center gap-1">
+                        <XCircle className="w-3.5 h-3.5 text-gray-400" />
+                        <span>Cancelled</span>
+                      </p>
+                    )}
                   </div>
                 </div>
-
-                {/* Date & Timings */}
-                <div className="flex flex-row md:items-center md:gap-12 mt-3 gap-8">
-                  <div>
-                    <p className="text-xs uppercase text-gray-400 font-medium">Check-In</p>
-                    <p className="text-gray-700 text-sm font-medium mt-0.5">
-                      {checkInDate ? new Date(checkInDate).toDateString() : '—'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-gray-400 font-medium">Check-Out</p>
-                    <p className="text-gray-700 text-sm font-medium mt-0.5">
-                      {checkOutDate ? new Date(checkOutDate).toDateString() : '—'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Payment & Actions */}
-                <div className="flex flex-col items-start justify-center pt-3 gap-2">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`h-2.5 w-2.5 rounded-full ${
-                        isPaid
-                          ? 'bg-green-500'
-                          : booking.status === 'CANCELLED' || booking.status === 'EXPIRED'
-                          ? 'bg-gray-400'
-                          : 'bg-amber-500'
-                      }`}
-                    ></div>
-                    <span
-                      className={`text-xs font-semibold uppercase ${
-                        isPaid
-                          ? 'text-green-600'
-                          : booking.status === 'CANCELLED' || booking.status === 'EXPIRED'
-                          ? 'text-gray-500'
-                          : 'text-amber-600'
-                      }`}
-                    >
-                      {booking.status || (isPaid ? 'Paid' : 'Unpaid')}
-                    </span>
-                  </div>
-
-                  {canPay && (
-                    <button
-                      onClick={() => handlePayment(booking)}
-                      disabled={initiatingPaymentId === booking._id}
-                      className="px-4 py-1.5 mt-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer disabled:opacity-50"
-                    >
-                      {initiatingPaymentId === booking._id ? 'Initiating...' : 'Pay Now'}
-                    </button>
-                  )}
-
-                  {canCancel && (
-                    <button
-                      onClick={() => handleCancel(booking._id)}
-                      disabled={cancellingId === booking._id}
-                      className="px-4 py-1 text-xs text-red-600 hover:bg-red-50 rounded-full border border-red-200 transition cursor-pointer"
-                    >
-                      {cancellingId === booking._id ? 'Cancelling...' : 'Cancel Hold'}
-                    </button>
-                  )}
-                </div>
-              </div>
+              </motion.div>
             );
           })
         )}
@@ -268,18 +482,94 @@ const MyBookings = () => {
 
       {/* Stripe Payment Modal */}
       {activePayment && (
-        <PaymentModal
-          bookingId={activePayment.bookingId}
-          clientSecret={activePayment.clientSecret}
-          amountMinor={activePayment.amountMinor}
-          currency={activePayment.currency}
-          onClose={() => setActivePayment(null)}
-          onSuccess={() => {
-            setActivePayment(null);
-            fetchBookings();
-          }}
-        />
+        <ErrorBoundary>
+          <PaymentModal
+            bookingId={activePayment.bookingId?._id || activePayment.bookingId}
+            clientSecret={activePayment.clientSecret}
+            amountMinor={activePayment.amountMinor}
+            currency={activePayment.currency}
+            onClose={() => setActivePayment(null)}
+            onSuccess={(confirmedBooking) => {
+              setActivePayment(null);
+              fetchBookings();
+              // Show celebration modal strictly when authoritative backend confirmed
+              if (confirmedBooking && confirmedBooking.status === "CONFIRMED") {
+                setSuccessBooking(confirmedBooking);
+              }
+            }}
+            onPending={() => {
+              setActivePayment(null);
+              fetchBookings();
+            }}
+          />
+        </ErrorBoundary>
       )}
+
+      {/* Cancellation Confirmation Dialog */}
+      <Modal
+        isOpen={Boolean(cancellingBooking)}
+        onClose={() => setCancellingBooking(null)}
+        maxWidth="max-w-md"
+        title="Cancel booking hold?"
+        description="Are you sure you want to cancel this booking hold?"
+      >
+        <div className="space-y-4 pt-2">
+          <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              Your room hold will be cancelled and released immediately for other guests to book.
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setCancellingBooking(null)}
+              disabled={isCancelling}
+              className="flex-1"
+            >
+              Keep hold
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              onClick={confirmCancel}
+              isLoading={isCancelling}
+              loadingText="Cancelling..."
+              className="flex-1"
+            >
+              Cancel hold
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Official Receipt Modal */}
+      <ReceiptModal
+        isOpen={Boolean(receiptBooking)}
+        onClose={() => setReceiptBooking(null)}
+        booking={receiptBooking}
+        user={user}
+        currency={currency}
+      />
+
+      {/* Booking Success Celebration Modal */}
+      <BookingSuccessModal
+        isOpen={Boolean(successBooking)}
+        onClose={() => setSuccessBooking(null)}
+        booking={successBooking}
+        currency={currency}
+        onViewReceipt={() => {
+          const b = successBooking;
+          setSuccessBooking(null);
+          setReceiptBooking(b);
+        }}
+        onViewBookings={() => {
+          setSuccessBooking(null);
+          setActiveTab("upcoming");
+        }}
+      />
     </div>
   );
 };

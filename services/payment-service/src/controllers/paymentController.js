@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 import { createPayment } from "../services/paymentService.js";
 
@@ -25,21 +24,22 @@ export const createPaymentController = async (req, res, next) => {
       });
     }
 
-    if (
-      typeof idempotencyKey !== "string" ||
-      !idempotencyKey.trim() ||
-      idempotencyKey.trim().length > 128
-    ) {
+    let key = idempotencyKey;
+    if (key && (typeof key !== "string" || key.trim().length > 128)) {
       return res.status(400).json({
         success: false,
-        message: "A valid Idempotency-Key header is required",
+        message: "A valid Idempotency-Key header is required (max 128 characters)",
       });
+    }
+
+    if (!key || !key.trim()) {
+      key = `pay_booking_${bookingId}`;
     }
 
     const payment = await createPayment({
       bookingId,
       userId,
-      idempotencyKey,
+      idempotencyKey: key.trim(),
     });
 
     return res.status(200).json({

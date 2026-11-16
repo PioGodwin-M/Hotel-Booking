@@ -1,4 +1,5 @@
 
+import { clerkClient } from "@clerk/express";
 import User from "../models/User.js";
 
 const createError = (message, statusCode) => {
@@ -8,26 +9,148 @@ const createError = (message, statusCode) => {
 };
 
 export const getOrCreateUser = async (clerkUserId) => {
-  if (!clerkUserId) {
+  if (!clerkUserId || typeof clerkUserId !== "string" || !clerkUserId.trim()) {
     throw createError("Invalid Clerk user ID", 400);
   }
 
-  const user = await User.findOneAndUpdate(
-    { clerkUserId },
-    {
-      $setOnInsert: {
-        clerkUserId,
-      },
-    },
-    {
-      new: true,
-      upsert: true,
-      runValidators: true,
-      setDefaultsOnInsert: true,
-    }
-  );
+  const trimmedId = clerkUserId.trim();
 
-  return user;
+  // 1. Check if user already exists in database
+  let existingUser = await User.findOne({ clerkUserId: trimmedId });
+
+  // Determine if profile needs retrieval from Clerk:
+  // - If user does not exist in DB: definitely needs Clerk retrieval
+  // - If user exists, but has missing/null email or missing names: needs Clerk retrieval to complete profile
+  const isMissingCoreData =
+    !existingUser ||
+    existingUser.email === null ||
+    existingUser.email === undefined ||
+    !existingUser.firstName;
+
+  let clerkUser = null;
+
+  if (isMissingCoreData) {
+    try {
+      clerkUser = await clerkClient.users.getUser(trimmedId);
+    } catch (clerkErr) {
+      // Do NOT silently treat Clerk API failures as successful synchronization.
+      // Do not create an incomplete profile with missing email when Clerk retrieval has failed.
+      const status = clerkErr.status === 404 ? 404 : 502;
+      const message =
+        clerkErr.status === 404
+          ? "User not found in Clerk"
+          : `Clerk API failure during profile synchronization: ${clerkErr.message || "Unknown error"}`;
+      const error = createError(message, status);
+      error.code = clerkErr.status === 404 ? "CLERK_USER_NOT_FOUND" : "CLERK_API_ERROR";
+      throw error;
+    }
+
+    if (!clerkUser || typeof clerkUser !== "object") {
+      throw createError("Clerk API returned an invalid user response", 502);
+    }
+  }
+
+  // Extract fields from Clerk safely
+  let primaryEmail = null;
+  let firstName = "";
+  let lastName = "";
+  let displayName = "";
+  let imageUrl = null;
+
+  if (clerkUser) {
+    const emailAddresses = Array.isArray(clerkUser.emailAddresses)
+      ? clerkUser.emailAddresses
+      : [];
+    const primary = emailAddresses.find(
+      (e) => e.id === clerkUser.primaryEmailAddressId
+    );
+    const resolvedEmail =
+      primary?.emailAddress || emailAddresses[0]?.emailAddress || null;
+    primaryEmail =
+      typeof resolvedEmail === "string"
+        ? resolvedEmail.trim().toLowerCase()
+        : null;
+
+    firstName =
+      typeof clerkUser.firstName === "string" ? clerkUser.firstName.trim() : "";
+    lastName =
+      typeof clerkUser.lastName === "string" ? clerkUser.lastName.trim() : "";
+    displayName =
+      [firstName, lastName].filter(Boolean).join(" ") ||
+      (typeof clerkUser.username === "string" ? clerkUser.username.trim() : "") ||
+      "";
+    imageUrl = typeof clerkUser.imageUrl === "string" ? clerkUser.imageUrl : null;
+  }
+
+  // 2. If user does NOT exist: insert new record with Clerk data atomically
+  if (!existingUser) {
+    try {
+      const newUser = await User.findOneAndUpdate(
+        { clerkUserId: trimmedId },
+        {
+          $setOnInsert: {
+            clerkUserId: trimmedId,
+            firstName,
+            lastName,
+            displayName,
+            email: primaryEmail,
+            imageUrl,
+            status: "ACTIVE",
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          runValidators: true,
+          setDefaultsOnInsert: true,
+        }
+      );
+      return newUser;
+    } catch (dbErr) {
+      // Handle concurrent race condition (E11000 duplicate key on clerkUserId)
+      if (dbErr.code === 11000) {
+        existingUser = await User.findOne({ clerkUserId: trimmedId });
+        if (existingUser) return existingUser;
+      }
+      throw dbErr;
+    }
+  }
+
+  // 3. If user ALREADY exists: complete missing fields while preserving existing valid profile data
+  if (clerkUser) {
+    const updates = {};
+
+    // Only update if existing record lacks the field and Clerk provides a non-empty value
+    if (
+      (existingUser.email === null || existingUser.email === undefined) &&
+      primaryEmail
+    ) {
+      updates.email = primaryEmail;
+    }
+    if (!existingUser.firstName && firstName) {
+      updates.firstName = firstName;
+    }
+    if (!existingUser.lastName && lastName) {
+      updates.lastName = lastName;
+    }
+    if (!existingUser.displayName && displayName) {
+      updates.displayName = displayName;
+    }
+    if (!existingUser.imageUrl && imageUrl) {
+      updates.imageUrl = imageUrl;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const updatedUser = await User.findOneAndUpdate(
+        { clerkUserId: trimmedId },
+        { $set: updates },
+        { new: true, runValidators: true }
+      );
+      return updatedUser || existingUser;
+    }
+  }
+
+  return existingUser;
 };
 
 export const getUserProfile = async (clerkUserId) => {

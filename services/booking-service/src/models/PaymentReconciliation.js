@@ -4,8 +4,16 @@ const paymentReconciliationSchema = new mongoose.Schema(
   {
     eventId: {
       type: String,
-      required: true,
+      required: false,
+      sparse: true,
+    },
+
+    reconciliationKey: {
+      type: String,
+      required: false,
       unique: true,
+      sparse: true,
+      index: true,
     },
 
     bookingId: {
@@ -20,6 +28,16 @@ const paymentReconciliationSchema = new mongoose.Schema(
       index: true,
     },
 
+    attemptNumber: {
+      type: Number,
+      default: null,
+    },
+
+    attemptId: {
+      type: String,
+      default: null,
+    },
+
     reason: {
       type: String,
       required: true,
@@ -28,6 +46,20 @@ const paymentReconciliationSchema = new mongoose.Schema(
         "PAYMENT_ID_MISMATCH",
         "PAYMENT_AMOUNT_MISMATCH",
         "PAYMENT_CURRENCY_MISMATCH",
+        "OBSOLETE_ATTEMPT",
+        "UNEXPECTED_FUTURE_ATTEMPT",
+        "ATTEMPT_ID_MISMATCH",
+        "ATTEMPT_NUMBER_MISMATCH",
+        "EXTERNAL_REFUND_ON_CONFIRMED_BOOKING",
+        "STRIPE_DISPUTE_CREATED",
+        "LATE_PAYMENT_ON_EXPIRED_BOOKING",
+        "LATE_PAYMENT_ON_CANCELLED_BOOKING",
+        "USER_ID_MISMATCH",
+        "MISSING_ATTEMPT_ID",
+        "MISSING_ATTEMPT_NUMBER",
+        "MISSING_USER_ID",
+        "MISSING_PAYMENT_AMOUNT",
+        "MISSING_PAYMENT_CURRENCY",
       ],
     },
 
@@ -48,11 +80,37 @@ const paymentReconciliationSchema = new mongoose.Schema(
       default: "REVIEW_REQUIRED",
       index: true,
     },
+
+    resolvedBy: {
+      type: String,
+      default: null,
+    },
+
+    resolvedAt: {
+      type: Date,
+      default: null,
+    },
+
+    resolutionAction: {
+      type: String,
+      default: null,
+    },
+
+    resolutionDetails: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+
+    details: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
   },
   { timestamps: true }
 );
 
 paymentReconciliationSchema.index({ status: 1, createdAt: 1 });
+paymentReconciliationSchema.index({ bookingId: 1, paymentId: 1, reason: 1 });
 
 const PaymentReconciliation = mongoose.model(
   "PaymentReconciliation",

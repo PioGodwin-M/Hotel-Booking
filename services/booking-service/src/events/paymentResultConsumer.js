@@ -155,6 +155,24 @@ const connectRabbitMQ = async () => {
 
     await newConsumerChannel.bindQueue(
       MAIN_QUEUE,
+      EVENT_EXCHANGE,
+      "payment.refunded"
+    );
+
+    await newConsumerChannel.bindQueue(
+      MAIN_QUEUE,
+      EVENT_EXCHANGE,
+      "payment.refund-failed"
+    );
+
+    await newConsumerChannel.bindQueue(
+      MAIN_QUEUE,
+      EVENT_EXCHANGE,
+      "payment.refund.*"
+    );
+
+    await newConsumerChannel.bindQueue(
+      MAIN_QUEUE,
       RETURN_EXCHANGE,
       ROUTING_KEY
     );

@@ -7,15 +7,21 @@ import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
 import mongoose from "mongoose";
+import { clerkMiddleware } from "@clerk/express";
 
 import connectDatabase from "./config/database.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import internalPaymentRoutes from "./routes/internalPaymentRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
 
 import {
   startOutboxWorker,
   stopOutboxWorker,
 } from "./workers/outboxWorker.js";
+import {
+  startPaymentReconciliationWorker,
+  stopPaymentReconciliationWorker,
+} from "./workers/paymentReconciliationWorker.js";
 
 const app = express();
 const PORT = process.env.PORT || 4004;
@@ -23,8 +29,36 @@ const PORT = process.env.PORT || 4004;
 let server = null;
 let shuttingDown = false;
 
+const getAllowedOrigins = () => {
+  const configured = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL;
+  if (configured) {
+    return configured.split(",").map((o) => o.trim()).filter(Boolean);
+  }
+  if (process.env.NODE_ENV !== "production") {
+    return ["http://localhost:5173", "http://127.0.0.1:5173"];
+  }
+  return [];
+};
+
+const allowedOrigins = getAllowedOrigins();
+
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (
+        process.env.NODE_ENV !== "production" &&
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+    },
+    credentials: true,
+  })
+);
 app.use(morgan("dev"));
 
 app.get("/health", (req, res) => {
@@ -41,6 +75,10 @@ app.use("/api/webhooks/stripe", webhookRoutes);
 // JSON parsing for normal application routes.
 app.use(express.json({ limit: "1mb" }));
 
+// Internal service-to-service routes (authenticated via serviceAuthMiddleware)
+app.use("/internal/payments", internalPaymentRoutes);
+
+app.use(clerkMiddleware());
 app.use("/api/payments", paymentRoutes);
 
 // Central error handler.
@@ -92,7 +130,8 @@ const shutdown = async (signal) => {
     // 1. Stop accepting requests and drain active HTTP requests.
     await closeHttpServer();
 
-    // 2. Stop background publication and close RabbitMQ resources.
+    // 2. Stop background publication and reconciliation workers.
+    await stopPaymentReconciliationWorker();
     await stopOutboxWorker();
 
     // 3. Disconnect MongoDB after application work has stopped.
@@ -118,11 +157,13 @@ const startServer = async () => {
     });
 
     await startOutboxWorker();
+    await startPaymentReconciliationWorker();
   } catch (error) {
     console.error("Payment Service startup failed:", error);
 
     try {
       await closeHttpServer();
+      await stopPaymentReconciliationWorker();
       await stopOutboxWorker();
       await mongoose.disconnect();
     } catch (cleanupError) {

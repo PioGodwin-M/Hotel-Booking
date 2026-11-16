@@ -135,11 +135,12 @@ const publishOne = async (event) => {
           }
 
           if (returned) {
-            reject(
-              new Error(
-                `RabbitMQ could not route event ${eventId} (${routingKey})`
-              )
+            const err = new Error(
+              `RabbitMQ could not route event ${eventId} (${routingKey})`
             );
+            err.code = "UNROUTABLE_RETURN";
+            err.routingKey = routingKey;
+            reject(err);
             return;
           }
 

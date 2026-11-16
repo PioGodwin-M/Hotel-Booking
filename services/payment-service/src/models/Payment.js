@@ -15,6 +15,19 @@ const paymentSchema = new mongoose.Schema(
       index: true,
     },
 
+    attemptNumber: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: 1,
+    },
+
+    attemptId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
     userId: {
       type: String,
       required: true,
@@ -99,12 +112,80 @@ const paymentSchema = new mongoose.Schema(
       default: null,
     },
 
+    refundId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+
+    refundStatus: {
+      type: String,
+      enum: ["NONE", "PENDING", "SUCCEEDED", "FAILED", "CANCELLED"],
+      default: "NONE",
+    },
+
+    refundedAmountMinor: {
+      type: Number,
+      default: 0,
+    },
+
+    refundReason: {
+      type: String,
+      default: null,
+    },
+
+    refundedAt: {
+      type: Date,
+      default: null,
+    },
+
+    lastRefundError: {
+      type: String,
+      default: null,
+    },
+
+    disputeStatus: {
+      type: String,
+      enum: ["NONE", "NEEDS_RESPONSE", "UNDER_REVIEW", "WON", "LOST"],
+      default: "NONE",
+      index: true,
+    },
+
+    disputeId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+
+    disputeReason: {
+      type: String,
+      default: null,
+    },
+
+    disputeAmountMinor: {
+      type: Number,
+      default: 0,
+    },
+
+    disputedAt: {
+      type: Date,
+      default: null,
+    },
+
     metadata: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
   },
   { timestamps: true }
+);
+
+paymentSchema.index(
+  { bookingId: 1, attemptNumber: 1 },
+  {
+    unique: true,
+    name: "unique_booking_payment_attempt",
+  }
 );
 
 paymentSchema.index(

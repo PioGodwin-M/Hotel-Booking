@@ -26,6 +26,17 @@ const createServiceProxy = (target, backendPrefix) => {
     },
 
     on: {
+      proxyRes: (proxyRes) => {
+        // Strip downstream CORS headers so API Gateway remains the single,
+        // authoritative CORS origin and credentials provider.
+        delete proxyRes.headers["access-control-allow-origin"];
+        delete proxyRes.headers["access-control-allow-credentials"];
+        delete proxyRes.headers["access-control-allow-methods"];
+        delete proxyRes.headers["access-control-allow-headers"];
+        delete proxyRes.headers["access-control-expose-headers"];
+        delete proxyRes.headers["access-control-max-age"];
+      },
+
       error: (error, req, res) => {
         console.error(
           `Proxy error [${backendPrefix}]:`,

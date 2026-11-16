@@ -1,7 +1,10 @@
-const CATALOG_SERVICE_URL = process.env.CATALOG_SERVICE_URL;
-const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET;
+const getCatalogUrl = () => process.env.CATALOG_SERVICE_URL;
+const getInternalSecret = () => process.env.INTERNAL_SERVICE_SECRET;
 
 export const getRoomPricing = async (roomCategoryId) => {
+  const CATALOG_SERVICE_URL = getCatalogUrl();
+  const INTERNAL_SERVICE_SECRET = getInternalSecret();
+
   if (!CATALOG_SERVICE_URL || !INTERNAL_SERVICE_SECRET) {
     const error = new Error("Catalog Service configuration is missing");
     error.code = "CATALOG_SERVICE_UNAVAILABLE";
@@ -74,6 +77,9 @@ export const getRoomPricing = async (roomCategoryId) => {
 };
 
 export const getOwnerHotelIds = async (ownerId) => {
+  const CATALOG_SERVICE_URL = getCatalogUrl();
+  const INTERNAL_SERVICE_SECRET = getInternalSecret();
+
   if (!CATALOG_SERVICE_URL || !INTERNAL_SERVICE_SECRET) {
     const error = new Error("Catalog Service configuration is missing");
     error.code = "CATALOG_SERVICE_UNAVAILABLE";

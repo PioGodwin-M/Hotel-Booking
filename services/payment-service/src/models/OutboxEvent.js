@@ -79,9 +79,18 @@ const outboxEventSchema = new mongoose.Schema(
     },
 
     leaseToken: {
-  type: String,
-  default: null,
-},
+      type: String,
+      default: null,
+    },
+
+    redriveAudit: [
+      {
+        operatorId: { type: String, required: true },
+        role: { type: String, default: "ADMIN" },
+        reason: { type: String, required: true },
+        redrivenAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

@@ -15,12 +15,57 @@ const PORT = process.env.PORT || 4000;
 
 app.use(helmet());
 
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    credentials: true,
-  })
-);
+const getAllowedOrigins = () => {
+  const configured = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL;
+  if (configured) {
+    return configured.split(",").map((o) => o.trim()).filter(Boolean);
+  }
+  // In development, default to local Vite dev server origins
+  if (process.env.NODE_ENV !== "production") {
+    return ["http://localhost:5173", "http://127.0.0.1:5173"];
+  }
+  return [];
+};
+
+const allowedOrigins = getAllowedOrigins();
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Permit requests with no origin (e.g. curl, server-to-server, mobile native)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // In development mode, dynamically permit localhost / 127.0.0.1 on any port
+    if (
+      process.env.NODE_ENV !== "production" &&
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Idempotency-Key",
+    "x-payment-service-key",
+    "x-internal-service-key",
+  ],
+  exposedHeaders: ["Content-Length", "X-Request-Id"],
+  maxAge: 86400,
+};
+
+app.use(cors(corsOptions));
 
 app.use(morgan("dev"));
 

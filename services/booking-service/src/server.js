@@ -34,14 +34,47 @@ import {
   stopBookingOutboxWorker,
 } from "./workers/bookingOutboxWorker.js";
 
+import {
+  startBookingReconciliationWorker,
+  stopBookingReconciliationWorker,
+} from "./workers/bookingReconciliationWorker.js";
+
 const app = express();
 const PORT = process.env.PORT || 4003;
 
 let server;
 let shuttingDown = false;
 
+const getAllowedOrigins = () => {
+  const configured = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL;
+  if (configured) {
+    return configured.split(",").map((o) => o.trim()).filter(Boolean);
+  }
+  if (process.env.NODE_ENV !== "production") {
+    return ["http://localhost:5173", "http://127.0.0.1:5173"];
+  }
+  return [];
+};
+
+const allowedOrigins = getAllowedOrigins();
+
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (
+        process.env.NODE_ENV !== "production" &&
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(morgan("dev"));
 
@@ -69,9 +102,11 @@ app.use((err, req, res, next) => {
     return next(err);
   }
 
-  return res.status(err.status || 500).json({
+  const statusCode = err.status || err.statusCode || 500;
+  return res.status(statusCode).json({
     success: false,
-    message: "Internal server error",
+    message: statusCode < 500 ? err.message : "Internal server error",
+    code: err.code || "INTERNAL_SERVER_ERROR",
   });
 });
 
@@ -95,6 +130,9 @@ const shutdown = async (signal = "SHUTDOWN") => {
     }
 
     // 2. Stop background workers.
+    await stopBookingReconciliationWorker().catch((err) => {
+      console.error("Booking reconciliation worker shutdown failed:", err);
+    });
     await stopHoldExpirationWorker();
     await stopBookingOutboxWorker();
 
@@ -134,7 +172,10 @@ const startServer = async () => {
     // 4. Start transactional outbox publisher.
     await startBookingOutboxWorker();
 
-    // 5. Start HTTP server.
+    // 5. Start periodic booking reconciliation worker.
+    await startBookingReconciliationWorker();
+
+    // 6. Start HTTP server.
     server = app.listen(PORT, () => {
       console.log(`Booking Service running on port ${PORT}`);
     });
@@ -142,6 +183,10 @@ const startServer = async () => {
     console.error("Booking Service startup failed:", error);
 
     // Clean up any resources that were started successfully.
+    await stopBookingReconciliationWorker().catch((err) => {
+      console.error("Booking reconciliation cleanup failed:", err);
+    });
+
     await stopHoldExpirationWorker().catch((err) => {
       console.error("Hold expiration worker cleanup failed:", err);
     });

@@ -1,51 +1,72 @@
-import React, { useState } from 'react';
-import { assets } from '../assets/assets';
-import Title from './Title';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { Mail, ArrowRight } from "lucide-react";
+import toast from "react-hot-toast";
+import { Button } from "./ui/Button";
 
-const NewsLetter = () => {
+export const NewsLetter = () => {
   const [email, setEmail] = useState("");
 
-  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const validateEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
 
-  const handleSubscribe = () => {
-    if (!email) return toast.error("Please enter your email");
-    if (!validateEmail(email)) return toast.error("Invalid email address");
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    if (!validateEmail(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
 
-    toast.success("Subscribed successfully!");
+    toast.success("Thank you for subscribing to our updates!");
     setEmail("");
   };
 
   return (
-    <div className="flex flex-col items-center max-w-5xl lg:w-full rounded-2xl px-4 py-12 md:py-16 mx-2 lg:mx-auto my-30 bg-gray-900 text-white">
-      <Title
-        title="Stay Inspired"
-        subTitle="Join our newsletter and be the first to discover new destinations, exclusive offers, and travel inspiration."
-      />
-      <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-6">
-        <input
-          type="text"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="bg-white/10 px-4 py-2.5 border border-white/20 rounded outline-none max-w-66 w-full"
-          placeholder="Enter your email"
-        />
-        <button
-          onClick={handleSubscribe}
-          className="flex items-center justify-center gap-2 group bg-black px-4 md:px-7 py-2.5 rounded active:scale-95 transition-all"
-        >
-          Subscribe
-          <img
-            src={assets.arrowIcon}
-            alt="arrow-icon"
-            className="w-3.5 invert group-hover:translate-x-1 transition-all"
-          />
-        </button>
+    <section className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto my-16 md:my-20">
+      <div className="relative rounded-2xl bg-[#0b1220] text-white p-8 sm:p-12 text-center border border-white/10 shadow-sm">
+        <div className="relative z-10 max-w-xl mx-auto space-y-3">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Get travel updates & special deals
+          </h2>
+
+          <p className="text-xs sm:text-sm text-stone-300 max-w-md mx-auto leading-relaxed">
+            Subscribe to receive discounts, destination guides, and early access to weekend deals.
+          </p>
+
+          <form
+            onSubmit={handleSubscribe}
+            className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-2.5 max-w-md mx-auto"
+          >
+            <div className="relative w-full">
+              <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                aria-label="Email address for updates"
+                className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-[10px] bg-white/10 border border-white/20 text-white placeholder:text-stone-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white"
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="secondary"
+              size="md"
+              className="w-full sm:w-auto px-5 py-2.5 font-medium shrink-0"
+              rightIcon={<ArrowRight className="w-4 h-4" />}
+            >
+              Subscribe
+            </Button>
+          </form>
+
+          <p className="text-[11px] text-stone-400 pt-1">
+            Zero spam. You can unsubscribe at any time.
+          </p>
+        </div>
       </div>
-      <p className="text-gray-500 mt-6 text-xs text-center">
-        By subscribing, you agree to our Privacy Policy and consent to receive updates.
-      </p>
-    </div>
+    </section>
   );
 };
 

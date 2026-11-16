@@ -1,25 +1,28 @@
-import React from 'react'
-import Hero from '../components/Hero'
-import FeaturedDestination from '../components/FeaturedDestination'
-import ExclusiveOffers from '../components/ExclusiveOffers'
-import Testimonial from '../components/Testimonial'
-import NewsLetter from '../components/NewsLetter'
-import Footer from '../components/Footer'
-import RecommendedHotels from '../components/RecommendedHotels'
+import React from "react";
+import Hero from "../components/Hero";
+import FeaturedDestination from "../components/FeaturedDestination";
+import ExclusiveOffers from "../components/ExclusiveOffers";
+import Testimonial from "../components/Testimonial";
+import NewsLetter from "../components/NewsLetter";
+import RecommendedHotels from "../components/RecommendedHotels";
+import { usePageTitle } from "../hooks/usePageTitle";
 
+export const Home = () => {
+  usePageTitle(
+    "Find your next stay",
+    "Search hotels, vacation stays, and comfortable rooms across India and abroad."
+  );
 
-const Home = () => {
   return (
     <>
-      <Hero></Hero>
-      <RecommendedHotels/>
-      <FeaturedDestination/>
-      <ExclusiveOffers/>
-      <Testimonial/>
-      <NewsLetter/>
-      
+      <Hero />
+      <RecommendedHotels />
+      <FeaturedDestination />
+      <ExclusiveOffers />
+      <Testimonial />
+      <NewsLetter />
     </>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;

@@ -1,12 +1,17 @@
 
-const BOOKING_SERVICE_URL = process.env.BOOKING_SERVICE_URL;
-const PAYMENT_SERVICE_SECRET = process.env.PAYMENT_SERVICE_SECRET;
+const getBookingUrl = () => process.env.BOOKING_SERVICE_URL;
+const getPaymentSecret = () => process.env.PAYMENT_SERVICE_SECRET;
 
 export const markBookingPaymentPending = async ({
   bookingId,
   paymentId,
+  attemptNumber = 1,
   userId,
+  previousAttempt = null,
 }) => {
+  const BOOKING_SERVICE_URL = getBookingUrl();
+  const PAYMENT_SERVICE_SECRET = getPaymentSecret();
+
   if (!BOOKING_SERVICE_URL || !PAYMENT_SERVICE_SECRET) {
     const error = new Error("Booking Service configuration is missing");
     error.code = "BOOKING_SERVICE_UNAVAILABLE";
@@ -31,7 +36,9 @@ export const markBookingPaymentPending = async ({
       },
       body: JSON.stringify({
         paymentId,
+        attemptNumber,
         userId,
+        previousAttempt,
       }),
       signal: AbortSignal.timeout(5000),
     });

@@ -21,6 +21,18 @@ const paymentRequestSchema = new mongoose.Schema(
       required: true,
     },
 
+    attemptNumber: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: 1,
+    },
+
+    attemptId: {
+      type: String,
+      required: true,
+    },
+
     paymentId: {
       type: String,
       required: true,
@@ -64,6 +76,14 @@ paymentRequestSchema.index(
   {
     unique: true,
     name: "unique_user_idempotency_key",
+  }
+);
+
+paymentRequestSchema.index(
+  { bookingId: 1, attemptNumber: 1 },
+  {
+    unique: true,
+    name: "unique_booking_attempt_reservation",
   }
 );
 
