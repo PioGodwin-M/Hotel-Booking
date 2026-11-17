@@ -50,7 +50,7 @@ export const CardStressTest = () => {
             <div
               key={w}
               id={`stress-container-${w}`}
-              className="flex flex-col gap-2 shrink-0 bg-white/50 dark:bg-white/5 p-4 rounded-2xl border border-dashed border-stone-300 dark:border-stone-700"
+              className="flex flex-col gap-2 shrink-0 bg-white/50 dark:bg-white/5 p-4 rounded-xl border border-dashed border-stone-300 dark:border-stone-700"
               style={{ width: `${w + 32}px` }}
             >
               <div className="flex items-center justify-between text-xs font-mono font-semibold text-stone-700 dark:text-stone-300 px-1">
@@ -70,7 +70,7 @@ export const CardStressTest = () => {
             List View Variant (Responsive Stack)
           </h2>
           <div className="space-y-6">
-            <div className="max-w-3xl bg-white/50 dark:bg-white/5 p-4 rounded-2xl border border-dashed border-stone-300 dark:border-stone-700">
+            <div className="max-w-3xl bg-white/50 dark:bg-white/5 p-4 rounded-xl border border-dashed border-stone-300 dark:border-stone-700">
               <span className="text-xs font-mono font-semibold block text-left mb-2 text-stone-700 dark:text-stone-300">
                 Desktop List (768px container)
               </span>
@@ -79,7 +79,7 @@ export const CardStressTest = () => {
 
             <div
               id="stress-container-list-mobile"
-              className="bg-white/50 dark:bg-white/5 p-4 rounded-2xl border border-dashed border-stone-300 dark:border-stone-700"
+              className="bg-white/50 dark:bg-white/5 p-4 rounded-xl border border-dashed border-stone-300 dark:border-stone-700"
               style={{ width: "352px" }}
             >
               <span className="text-xs font-mono font-semibold block text-left mb-2 text-stone-700 dark:text-stone-300">

@@ -1,26 +1,36 @@
 import React from "react";
 import Hero from "../components/Hero";
-import FeaturedDestination from "../components/FeaturedDestination";
-import ExclusiveOffers from "../components/ExclusiveOffers";
-import Testimonial from "../components/Testimonial";
-import NewsLetter from "../components/NewsLetter";
 import RecommendedHotels from "../components/RecommendedHotels";
+import CurrentOffers from "../components/CurrentOffers";
+import FeaturedDestination from "../components/FeaturedDestination";
+import TripIdeas from "../components/TripIdeas";
+import GuestReviews from "../components/GuestReviews";
+import TrustLine from "../components/TrustLine";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 export const Home = () => {
   usePageTitle(
     "Find your next stay",
-    "Search hotels, vacation stays, and comfortable rooms across India and abroad."
+    "Hotels, rooms and holiday stays. See the full price before you pay."
   );
 
   return (
     <>
       <Hero />
-      <RecommendedHotels />
-      <FeaturedDestination />
-      <ExclusiveOffers />
-      <Testimonial />
-      <NewsLetter />
+      {/* 
+        Home Order & Rhythm (Round 4d):
+        Order: Hero, Recommended stays (2 rows), Offers, Popular destinations, Trip ideas, Guest reviews, Trust line, Footer.
+        Spacing strictly driven by --section-gap (56px desktop, 36px mobile).
+        Top padding gives breathing room below the Hero search capsule so the heading does not collide.
+      */}
+      <div className="pt-8 sm:pt-11 space-y-[var(--section-gap)] pb-[var(--section-gap)]">
+        <RecommendedHotels />
+        <CurrentOffers />
+        <FeaturedDestination />
+        <TripIdeas />
+        <GuestReviews />
+        <TrustLine />
+      </div>
     </>
   );
 };

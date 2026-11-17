@@ -1,182 +1,331 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ShieldCheck,
-  Award,
-  Headphones,
-  CheckCircle2,
   ArrowRight,
+  ChevronDown,
+  Mail,
+  Phone,
   Clock,
+  MapPin,
 } from "lucide-react";
-import { Button } from "../components/ui/Button";
-import { SafeImage } from "../components/ui";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { BRAND_NAME, HOLD_DURATION_TEXT } from "../config/brand";
-
-const InitialsAvatar = ({ initials, name, title }) => (
-  <div className="text-center group">
-    <div className="mx-auto h-28 w-28 rounded-full bg-[#f0ede6] dark:bg-white/10 border-2 border-[#e7e5e0] dark:border-white/15 flex items-center justify-center text-2xl font-bold text-[#0b1220] dark:text-[#faf8f5] shadow-xs group-hover:border-[#0b1220] dark:group-hover:border-white transition-colors">
-      <span>{initials}</span>
-    </div>
-    <h3 className="mt-4 text-lg font-semibold text-[#0b1220] dark:text-[#faf8f5]">
-      {name}
-    </h3>
-    <p className="text-xs text-stone-500 dark:text-stone-400 font-medium mt-0.5">
-      {title}
-    </p>
-  </div>
-);
-
-const FeatureCard = ({ icon, title, description }) => (
-  <div className="p-6 rounded-xl bg-white dark:bg-[#151d30] border border-[#e7e5e0] dark:border-white/10 shadow-2xs text-left space-y-2.5">
-    <div className="w-10 h-10 rounded-lg bg-[#f0ede6] dark:bg-white/10 text-[#0b1220] dark:text-[#faf8f5] flex items-center justify-center">
-      {icon}
-    </div>
-    <h3 className="text-base font-semibold text-[#0b1220] dark:text-[#faf8f5]">
-      {title}
-    </h3>
-    <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-      {description}
-    </p>
-  </div>
-);
+import { BUSINESS_CONFIG } from "../config/business";
+import { useAppContext } from "../context/AppContext";
+import { HowBookingWorks } from "../components/HowBookingWorks";
+import { SafeImage } from "../components/ui";
 
 export const About = () => {
+  const { rooms } = useAppContext();
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
+
   usePageTitle(
-    `About Us`,
-    `Learn about ${BRAND_NAME}, our mission to make booking quality stays straightforward and reliable.`
+    "About us",
+    `Learn about ${BUSINESS_CONFIG.companyName}, our mission to make booking quality stays straightforward and reliable.`
   );
 
+  // Compute real facts without inventing data
+  const realCitiesCount = Array.isArray(rooms)
+    ? new Set(rooms.map((r) => r?.hotel?.city).filter(Boolean)).size
+    : 0;
+
+  const facts = [
+    realCitiesCount > 0 && {
+      label: "Active destinations",
+      value: `${realCitiesCount} cities`,
+      note: "Live catalog locations",
+    },
+    {
+      label: "Reservation hold",
+      value: BUSINESS_CONFIG.holdDurationText,
+      note: "Exclusive date lock",
+    },
+    {
+      label: "Customer support",
+      value: "Mon – Sat",
+      note: "9:00 AM – 8:00 PM IST",
+    },
+    {
+      label: "Payment security",
+      value: BUSINESS_CONFIG.paymentProcessingPartner,
+      note: "PCI-DSS encrypted",
+    },
+  ].filter(Boolean);
+
+  const toggleFaq = (index) => {
+    setOpenFaqIndex(openFaqIndex === index ? null : index);
+  };
+
   return (
-    <div className="pt-20 pb-16">
-      {/* Hero Section */}
-      <section
-        className="relative bg-cover bg-center text-white py-24 md:py-32 text-center overflow-hidden"
-        style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2000&q=85')",
-        }}
-      >
-        <div className="absolute inset-0 bg-[#0b1220]/75" />
-        <div className="page-container relative z-10 max-w-3xl space-y-4">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-            Making Great Stays Simple and Reliable
-          </h1>
-          <p className="text-sm sm:text-base text-stone-200 max-w-xl mx-auto leading-relaxed">
-            We help travellers discover comfortable hotel rooms and vacation stays with clear pricing and zero hassle.
-          </p>
+    <div className="pt-16 sm:pt-20 pb-20 text-left">
+      {/* 1. Hero: ~360px height, bright photo, text left-aligned in container */}
+      <section className="relative h-[360px] bg-stone-900 text-white overflow-hidden flex items-center">
+        <SafeImage
+          src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=2000&q=80"
+          alt="Bright, sunlit resort pool and villa"
+          fallbackLabel="PGM Stays"
+          loading="eager"
+          className="absolute inset-0 w-full h-full object-cover opacity-60"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0b1220]/90 via-[#0b1220]/65 to-transparent" />
+
+        <div className="page-container relative z-10 w-full">
+          <div className="max-w-[640px] space-y-3.5">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
+              Simple, dependable stays across India and abroad.
+            </h1>
+            <p className="text-sm sm:text-base text-stone-200 leading-relaxed max-w-lg">
+              We help travelers find comfortable hotels and boutique rooms with transparent upfront pricing and zero booking surprises.
+            </p>
+            <div className="pt-1">
+              <Link
+                to="/rooms"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-stone-900 font-semibold text-sm hover:bg-stone-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <span>Browse stays</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Our Story Section */}
-      <section className="py-16 md:py-20 page-container">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-          <div className="relative rounded-2xl overflow-hidden shadow-sm aspect-[4/3] bg-stone-100 dark:bg-stone-800">
+      {/* 2. What We Do: Two columns (Text on Left max 600px, 4:3 Photo on Right) + Facts Strip below */}
+      <section className="py-12 sm:py-16 page-container">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center mb-10">
+          {/* Left Column: two paragraphs */}
+          <div className="lg:col-span-7 max-w-[600px] space-y-4">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
+              What we do
+            </h2>
+            <p className="text-sm sm:text-base text-stone-600 dark:text-stone-300 leading-relaxed">
+              {BUSINESS_CONFIG.companyName} was created to make reserving accommodations clear and reliable. Rather than inflating rates with hidden resort charges at the final checkout screen, we show the full price upfront—including taxes and room tariffs.
+            </p>
+            <p className="text-sm sm:text-base text-stone-600 dark:text-stone-300 leading-relaxed">
+              Every listing provides authentic photos, verified guest capacities, and a guaranteed 10-minute reservation hold while you confirm payment. When you book a room, your dates are locked immediately.
+            </p>
+          </div>
+
+          {/* Right Column: 4:3 photo */}
+          <div className="lg:col-span-5 aspect-[4/3] rounded-[12px] overflow-hidden bg-stone-100 dark:bg-white/5 border border-[#e7e5e0] dark:border-white/10 shadow-2xs">
             <SafeImage
-              src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80"
-              alt="Comfortable, sunlit modern stay interior"
-              fallbackLabel="PGM Stays Interior"
+              src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1000&q=80"
+              alt="Comfortable, sunlit modern room interior"
+              fallbackLabel="PGM Stays interior"
               loading="lazy"
               className="w-full h-full object-cover"
             />
           </div>
-
-          <div className="space-y-4 text-left">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
-              Built for everyday travellers who value peace of mind
-            </h2>
-            <p className="text-sm sm:text-base text-stone-600 dark:text-stone-300 leading-relaxed">
-              We started <strong>{BRAND_NAME}</strong> with a simple goal: booking a hotel should be transparent, fast, and completely dependable. No misleading photos, no hidden resort fees at checkout, and no complicated jargon.
-            </p>
-            <p className="text-sm sm:text-base text-stone-600 dark:text-stone-300 leading-relaxed">
-              Every property listed on our platform is checked for cleanliness, genuine amenities, and friendly host service. Whether you are traveling for work, a weekend trip, or a family holiday, we make sure your stay is comfortable.
-            </p>
-          </div>
         </div>
+
+        {/* Facts Strip (Full container width) */}
+        {facts.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-5 sm:p-6 rounded-[12px] bg-[#f0ede6]/60 dark:bg-white/5 border border-[#e7e5e0] dark:border-white/10 shadow-2xs">
+            {facts.map((fact) => (
+              <div key={fact.label} className="space-y-1">
+                <span className="text-xs text-stone-500 dark:text-stone-400 block font-medium">
+                  {fact.label}
+                </span>
+                <span className="text-xl sm:text-2xl font-bold text-[#0b1220] dark:text-[#faf8f5] tabular-nums block">
+                  {fact.value}
+                </span>
+                <span className="text-xs text-stone-500 dark:text-stone-400 block">
+                  {fact.note}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Why Choose Us */}
-      <section className="py-16 bg-[#faf9f6] dark:bg-[#151d30]/50 border-y border-[#e7e5e0] dark:border-white/10">
-        <div className="page-container text-center">
+      {/* 3. How Booking Works (reusable 3-step block) */}
+      <div className="border-t border-[#e7e5e0] dark:border-white/10 py-6">
+        <HowBookingWorks />
+      </div>
+
+      {/* 4. Our Commitments (3 cards in a row, equal height, full width) */}
+      <section className="py-12 sm:py-16 page-container border-t border-[#e7e5e0] dark:border-white/10">
+        <div className="max-w-[680px] mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
-            Why Travelers Choose {BRAND_NAME}
+            Our commitments
           </h2>
-          <p className="mt-2 text-xs sm:text-sm text-stone-600 dark:text-stone-400 max-w-md mx-auto">
-            Everything you need for a smooth and comfortable hotel booking.
+          <p className="mt-1 text-xs sm:text-sm text-stone-600 dark:text-stone-400">
+            Three principles built directly into how our platform operates.
           </p>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
-            <FeatureCard
-              icon={<Award className="w-5 h-5 text-[#0b1220] dark:text-white" />}
-              title="Quality Stays"
-              description="Clean rooms, accurate photos, and amenities verified before listing."
-            />
-            <FeatureCard
-              icon={<Clock className="w-5 h-5 text-[#0b1220] dark:text-white" />}
-              title={`${HOLD_DURATION_TEXT} Hold`}
-              description={`When you reserve, your room is held for ${HOLD_DURATION_TEXT} while you complete payment.`}
-            />
-            <FeatureCard
-              icon={<Headphones className="w-5 h-5 text-[#0b1220] dark:text-white" />}
-              title="Help When You Need It"
-              description="Dedicated customer support to assist with check-in questions or booking changes."
-            />
-            <FeatureCard
-              icon={<CheckCircle2 className="w-5 h-5 text-[#0b1220] dark:text-white" />}
-              title="Clear Pricing"
-              description="Taxes and service fees are included upfront. What you see is what you pay."
-            />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {BUSINESS_CONFIG.commitments.map((item) => (
+            <div
+              key={item.id}
+              className="p-5 sm:p-6 rounded-[12px] bg-white dark:bg-[#151d30] border border-[#e7e5e0] dark:border-white/10 shadow-2xs flex flex-col justify-between space-y-2.5 h-full"
+            >
+              <div>
+                <h3 className="text-base font-semibold text-[#0b1220] dark:text-[#faf8f5]">
+                  {item.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed mt-2">
+                  {item.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 5. For Hosts: Full container width, buttons on right at desktop */}
+      <section className="py-12 sm:py-16 page-container border-t border-[#e7e5e0] dark:border-white/10">
+        <div className="p-6 sm:p-10 rounded-[12px] bg-stone-900 text-white space-y-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 border-b border-white/10 pb-6">
+            <div className="max-w-xl space-y-1.5">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                For property hosts and hotel owners
+              </h2>
+              <p className="text-sm text-stone-300 leading-relaxed">
+                List your rooms on {BUSINESS_CONFIG.companyName} to connect with travelers looking for dependable stays.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <Link
+                to="/owner/add-room"
+                className="px-5 py-2.5 rounded-xl bg-white text-stone-900 font-semibold text-sm hover:bg-stone-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                List your property
+              </Link>
+              <Link
+                to="/owner"
+                className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 text-white font-semibold text-sm hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                Owner dashboard
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {BUSINESS_CONFIG.hostBenefits.map((b) => (
+              <div key={b.title} className="space-y-1.5">
+                <h3 className="text-base font-semibold text-white">
+                  {b.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">
+                  {b.description}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Leadership Section with initials avatars */}
-      <section className="py-16 page-container text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
-          Our Team
-        </h2>
-        <p className="mt-2 text-xs sm:text-sm text-stone-600 dark:text-stone-400">
-          The team working behind {BRAND_NAME} to make your trips better.
-        </p>
+      {/* 6. FAQ & Contact: Two columns (FAQ left 60%, Sticky Contact card right 40%) */}
+      <section className="py-12 sm:py-16 page-container border-t border-[#e7e5e0] dark:border-white/10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          {/* FAQ Column (about 60% on desktop) */}
+          <div className="lg:col-span-7 space-y-6">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
+                Frequently asked questions
+              </h2>
+              <p className="mt-1 text-xs sm:text-sm text-stone-600 dark:text-stone-400">
+                Answers to common questions about booking, payments, and cancellations.
+              </p>
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-12">
-          <InitialsAvatar
-            initials="PG"
-            name="Pio Godwin M"
-            title="Founder & Product Lead"
-          />
-          <InitialsAvatar
-            initials="KM"
-            name="Kamalesh M"
-            title="Engineering Lead"
-          />
-          <InitialsAvatar
-            initials="RS"
-            name="Raghunath S"
-            title="Host & Partner Operations"
-          />
-        </div>
-      </section>
+            <div className="divide-y divide-[#e7e5e0] dark:divide-white/10 border-y border-[#e7e5e0] dark:border-white/10">
+              {BUSINESS_CONFIG.faq.map((item, index) => {
+                const isOpen = openFaqIndex === index;
+                return (
+                  <div key={item.question} className="py-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleFaq(index)}
+                      aria-expanded={isOpen}
+                      className="w-full min-h-[48px] py-3.5 flex items-center justify-between text-left text-sm sm:text-base font-semibold text-[#0b1220] dark:text-[#faf8f5] hover:text-stone-600 dark:hover:text-stone-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0b1220]"
+                    >
+                      <span className="pr-4">{item.question}</span>
+                      <ChevronDown
+                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                          isOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                    {isOpen && (
+                      <div className="pb-4 pt-1 text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed pr-6">
+                        {item.answer}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-      {/* CTA Banner */}
-      <section className="page-container pb-10">
-        <div className="rounded-2xl bg-[#0b1220] text-white p-8 md:p-12 text-center space-y-4">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Ready to find your next stay?
-          </h2>
-          <p className="text-xs sm:text-sm text-stone-300 max-w-md mx-auto">
-            Browse our rooms across popular destinations. Reserve now and pay to confirm.
-          </p>
-          <div className="pt-2">
-            <Link to="/rooms">
-              <Button
-                variant="secondary"
-                size="md"
-                rightIcon={<ArrowRight className="w-4 h-4" />}
-              >
-                Browse All Stays
-              </Button>
-            </Link>
+          {/* Contact Card Column (about 40% on desktop, sticky below navbar) */}
+          <div className="lg:col-span-5 lg:sticky lg:top-24">
+            <div className="rounded-[12px] bg-white dark:bg-[#151d30] border border-[#e7e5e0] dark:border-white/10 p-6 sm:p-7 shadow-2xs space-y-6">
+              <div>
+                <h3 className="text-xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
+                  Need assistance?
+                </h3>
+                <p className="mt-1 text-xs sm:text-sm text-stone-600 dark:text-stone-400">
+                  Our team is available to help with reservations, date adjustments, or host onboarding.
+                </p>
+              </div>
+
+              <div className="space-y-4 text-xs sm:text-sm text-stone-700 dark:text-stone-300">
+                <div className="flex items-start gap-3">
+                  <Mail className="w-4 h-4 text-stone-500 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="block font-medium text-[#0b1220] dark:text-white">Email</span>
+                    <a
+                      href={`mailto:${BUSINESS_CONFIG.supportEmail}`}
+                      className="hover:underline text-stone-600 dark:text-stone-400"
+                    >
+                      {BUSINESS_CONFIG.supportEmail}
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Phone className="w-4 h-4 text-stone-500 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="block font-medium text-[#0b1220] dark:text-white">Phone</span>
+                    <span className="text-stone-600 dark:text-stone-400">
+                      {BUSINESS_CONFIG.supportPhone}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Clock className="w-4 h-4 text-stone-500 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="block font-medium text-[#0b1220] dark:text-white">Hours</span>
+                    <span className="text-stone-600 dark:text-stone-400">
+                      {BUSINESS_CONFIG.supportHours}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-4 h-4 text-stone-500 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="block font-medium text-[#0b1220] dark:text-white">Location</span>
+                    <span className="text-stone-600 dark:text-stone-400">
+                      {BUSINESS_CONFIG.address.city}, {BUSINESS_CONFIG.address.state},{" "}
+                      {BUSINESS_CONFIG.address.country}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-[#f0ede6] dark:border-white/10">
+                <a
+                  href={`mailto:${BUSINESS_CONFIG.supportEmail}?subject=Support%20Inquiry%20-%20PGM%20Stays`}
+                  className="w-full inline-flex items-center justify-center h-11 px-6 rounded-xl bg-[#0b1220] dark:bg-white text-white dark:text-[#0b1220] text-sm font-semibold hover:bg-stone-800 dark:hover:bg-stone-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0b1220]"
+                >
+                  Send a message
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>

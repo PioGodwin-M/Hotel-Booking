@@ -46,8 +46,16 @@ export const HotelCard = ({ room, index = 0, className }) => {
   };
   const hotelAddress = formatAreaCity(room.hotel?.address, hotelCity);
   const price = room.pricePerNight ?? 0;
-  const rating = room.rating || 4.8;
-  const reviewsCount = room.reviewsCount || 34;
+  const isNewStay = (() => {
+    if (!room.createdAt) return false;
+    const createdDate = new Date(room.createdAt);
+    if (isNaN(createdDate.getTime())) return false;
+    const diffDays = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays >= 0 && diffDays <= 30;
+  })();
+  const hasRealRating = typeof room.rating === "number" && room.rating > 0;
+  const rating = hasRealRating ? room.rating : null;
+  const reviewsCount = typeof room.reviewsCount === "number" && room.reviewsCount > 0 ? room.reviewsCount : null;
 
   const handleWishlistClick = (e) => {
     e.preventDefault();
@@ -113,20 +121,21 @@ export const HotelCard = ({ room, index = 0, className }) => {
                 )}
               </div>
 
-              {room.isNew || (!room.rating && !room.reviewsCount) ? (
-                <div className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-[6px] bg-[#f0ede6] dark:bg-white/10 text-stone-800 dark:text-stone-200 shrink-0">
-                  <Star className="w-3.5 h-3.5 text-stone-400" />
-                  <span>New</span>
-                </div>
-              ) : (
+              {hasRealRating ? (
                 <div className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-[6px] bg-[#f0ede6] dark:bg-white/10 text-stone-800 dark:text-stone-200 shrink-0">
                   <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                   <span className="tabular-nums">{rating.toFixed(1)}</span>
-                  <span className="text-stone-500 dark:text-stone-400 font-normal tabular-nums">
-                    ({reviewsCount})
-                  </span>
+                  {reviewsCount !== null && (
+                    <span className="text-stone-500 dark:text-stone-400 font-normal tabular-nums">
+                      ({reviewsCount})
+                    </span>
+                  )}
                 </div>
-              )}
+              ) : isNewStay ? (
+                <div className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-[6px] bg-[#f0ede6] dark:bg-white/10 text-stone-800 dark:text-stone-200 shrink-0">
+                  <span>New</span>
+                </div>
+              ) : null}
             </div>
 
             <div className="flex items-center gap-1 text-xs text-stone-600 dark:text-stone-400 truncate">
@@ -149,7 +158,7 @@ export const HotelCard = ({ room, index = 0, className }) => {
             <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-stone-500 dark:text-stone-400">
               <span>Taxes included</span>
               {SHOW_SAMPLE_DATA_LABELS && (
-                <span className="text-[10px] uppercase font-semibold text-stone-400 dark:text-stone-500 tracking-wider">
+                <span className="text-[11px] font-normal text-stone-400 dark:text-stone-500">
                   • Sample
                 </span>
               )}

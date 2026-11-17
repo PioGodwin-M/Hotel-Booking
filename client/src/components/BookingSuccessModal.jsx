@@ -51,14 +51,14 @@ export const BookingSuccessModal = ({
       closeOnBackdropClick={false}
     >
       <div className="text-center space-y-5 pt-1 pb-1">
-        {/* Success Icon */}
-        <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center mx-auto">
-          <CheckCircle2 className="w-8 h-8" />
+        {/* Success Icon: plain 32px check icon (no tinted circle behind it) */}
+        <div className="mx-auto flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+          <CheckCircle2 className="w-9 h-9" />
         </div>
 
         <div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0b1220] dark:text-[#faf8f5]">
-            Booking Confirmed!
+            Booking confirmed
           </h2>
           <p className="mt-1 text-xs sm:text-sm text-stone-600 dark:text-stone-400 max-w-sm mx-auto">
             Your payment was successful and your reservation is confirmed.

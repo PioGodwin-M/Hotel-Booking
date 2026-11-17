@@ -23,6 +23,13 @@
   --border: #e7e5e0;
   --muted-text: #5b6470;
   --primary: #0b1220;
+  --section-gap: 56px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --section-gap: 36px;
+  }
 }
 
 .dark {

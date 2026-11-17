@@ -3,6 +3,10 @@
  * Used when VITE_USE_SAMPLE_DATA=true in development environment.
  * All records use explicitly fake stable IDs prefixed with 'sample-' to prevent collisions.
  * In production, this module is never loaded and no sample records exist.
+ *
+ * Requirements (Round 4d #5):
+ * At least 10 distinct sample stays across at least 4 cities, each with its own photo
+ * (no two stays sharing a photo) and a unique name.
  */
 
 export const SAMPLE_STAYS = [
@@ -13,9 +17,6 @@ export const SAMPLE_STAYS = [
     amenities: ["Free Wifi", "Swimming Pool", "Free Breakfast", "Air Conditioning"],
     images: [
       "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1595576508898-0ad5c879a061?auto=format&fit=crop&w=1200&q=80",
     ],
     rating: 4.9,
     reviewsCount: 52,
@@ -36,8 +37,6 @@ export const SAMPLE_STAYS = [
     amenities: ["Free Wifi", "Mountain View", "Room Service", "Breakfast Included"],
     images: [
       "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=1200&q=80",
     ],
     rating: 4.8,
     reviewsCount: 38,
@@ -58,8 +57,6 @@ export const SAMPLE_STAYS = [
     amenities: ["Free Wifi", "Swimming Pool", "Spa", "Balcony"],
     images: [
       "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=1200&q=80",
     ],
     rating: 4.9,
     reviewsCount: 64,
@@ -80,7 +77,6 @@ export const SAMPLE_STAYS = [
     amenities: ["Free Wifi", "Work Desk", "Air Conditioning", "Coffee Maker"],
     images: [
       "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1595576508898-0ad5c879a061?auto=format&fit=crop&w=1200&q=80",
     ],
     rating: 4.7,
     reviewsCount: 29,
@@ -101,7 +97,6 @@ export const SAMPLE_STAYS = [
     amenities: ["Free Wifi", "Mountain View", "Fireplace", "Breakfast Included"],
     images: [
       "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80",
     ],
     rating: 4.8,
     reviewsCount: 41,
@@ -122,7 +117,6 @@ export const SAMPLE_STAYS = [
     amenities: ["Free Wifi", "Swimming Pool", "Gym", "Airport Transfer"],
     images: [
       "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
     ],
     rating: 4.9,
     reviewsCount: 75,
@@ -135,5 +129,125 @@ export const SAMPLE_STAYS = [
       address: "Dubai Marina, Dubai",
     },
     createdAt: "2024-04-20T12:00:00.000Z",
+  },
+  {
+    _id: "sample-7",
+    roomType: "Colonial Valley Room",
+    pricePerNight: 3900,
+    amenities: ["Free Wifi", "Mountain View", "Fireplace", "Balcony"],
+    images: [
+      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
+    ],
+    rating: 4.8,
+    reviewsCount: 33,
+    isAvailable: true,
+    isSample: true,
+    hotel: {
+      _id: "hotel-sample-7",
+      name: "Shimla Colonial Cottage",
+      city: "Shimla",
+      address: "The Ridge, Shimla",
+    },
+    createdAt: "2024-05-10T11:00:00.000Z",
+  },
+  {
+    _id: "sample-8",
+    roomType: "Oceanfront Deluxe Suite",
+    pricePerNight: 4600,
+    amenities: ["Free Wifi", "Swimming Pool", "Balcony", "Free Breakfast"],
+    images: [
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    ],
+    rating: 4.9,
+    reviewsCount: 47,
+    isAvailable: true,
+    isSample: true,
+    hotel: {
+      _id: "hotel-sample-8",
+      name: "Marina Bay Luxury Villa",
+      city: "Chennai",
+      address: "East Coast Road, Chennai",
+    },
+    createdAt: "2024-05-22T15:00:00.000Z",
+  },
+  {
+    _id: "sample-9",
+    roomType: "Sunset Ocean Room",
+    pricePerNight: 5100,
+    amenities: ["Free Wifi", "Swimming Pool", "Bar", "Ocean View"],
+    images: [
+      "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80",
+    ],
+    rating: 4.8,
+    reviewsCount: 36,
+    isAvailable: true,
+    isSample: true,
+    hotel: {
+      _id: "hotel-sample-9",
+      name: "Vagator Cliffside Boutique",
+      city: "Goa",
+      address: "Vagator Beach Road, Goa",
+    },
+    createdAt: "2024-06-01T08:00:00.000Z",
+  },
+  {
+    _id: "sample-10",
+    roomType: "Courtyard Garden Suite",
+    pricePerNight: 3100,
+    amenities: ["Free Wifi", "Free Breakfast", "Courtyard", "Room Service"],
+    images: [
+      "https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=1200&q=80",
+    ],
+    rating: 4.7,
+    reviewsCount: 28,
+    isAvailable: true,
+    isSample: true,
+    hotel: {
+      _id: "hotel-sample-10",
+      name: "Amber Fort View Haveli",
+      city: "Jaipur",
+      address: "Amer Road, Jaipur",
+    },
+    createdAt: "2024-06-15T10:00:00.000Z",
+  },
+  {
+    _id: "sample-11",
+    roomType: "Pinecrest Alpine Room",
+    pricePerNight: 4400,
+    amenities: ["Free Wifi", "Mountain View", "Heater", "Breakfast Included"],
+    images: [
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+    ],
+    rating: 4.8,
+    reviewsCount: 39,
+    isAvailable: true,
+    isSample: true,
+    hotel: {
+      _id: "hotel-sample-11",
+      name: "Mall Road Cedar Lodge",
+      city: "Shimla",
+      address: "Mall Road, Shimla",
+    },
+    createdAt: "2024-07-02T12:00:00.000Z",
+  },
+  {
+    _id: "sample-12",
+    roomType: "Royal Garden Deluxe",
+    pricePerNight: 4900,
+    amenities: ["Free Wifi", "Swimming Pool", "Spa", "Restaurant"],
+    images: [
+      "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
+    ],
+    rating: 4.9,
+    reviewsCount: 58,
+    isAvailable: true,
+    isSample: true,
+    hotel: {
+      _id: "hotel-sample-12",
+      name: "Alwar House Garden Retreat",
+      city: "Udaipur",
+      address: "Fateh Sagar, Udaipur",
+    },
+    createdAt: "2024-07-20T14:30:00.000Z",
   },
 ];

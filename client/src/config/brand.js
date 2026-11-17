@@ -10,7 +10,7 @@ export const BRAND_INITIAL = "P";
 export const BRAND_NAME = `${BRAND_PREFIX} ${BRAND_SUFFIX}`;
 
 export const BRAND_TAGLINE = "Find your next stay";
-export const BRAND_SUBTITLE = "Compare rooms, see the full price upfront and book in minutes.";
+export const BRAND_SUBTITLE = "Hotels, rooms and holiday stays. See the full price before you pay.";
 export const BRAND_COPYRIGHT = `© ${new Date().getFullYear()} ${BRAND_NAME}`;
 
 /**

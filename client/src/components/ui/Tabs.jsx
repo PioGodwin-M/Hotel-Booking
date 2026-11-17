@@ -18,7 +18,7 @@ export const Tabs = ({
       className={cn(
         isPill
           ? "inline-flex items-center gap-1 p-1 rounded-xl bg-[#f0ede6]/80 dark:bg-white/5 border border-[#e7e5e0] dark:border-white/10"
-          : "inline-flex items-center gap-4 border-b border-[#e7e5e0] dark:border-white/10 pb-1",
+          : "inline-flex items-center gap-6 border-b border-gray-200 dark:border-gray-800 pb-0",
         className
       )}
     >
@@ -56,24 +56,15 @@ export const Tabs = ({
                 <motion.div
                   layoutId={shouldReduceMotion ? undefined : "activeTabUnderline"}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0b1220] dark:bg-white -z-10"
+                  className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0b1220] dark:bg-white z-0"
                 />
               )
             )}
             {icon && <span className="shrink-0">{icon}</span>}
-            <span>{label}</span>
-            {count !== null && count !== undefined && (
-              <span
-                className={cn(
-                  "text-[11px] px-1.5 py-0.2 rounded-full tabular-nums",
-                  isActive
-                    ? "bg-[#0b1220]/10 dark:bg-white/15 text-[#0b1220] dark:text-[#faf8f5] font-semibold"
-                    : "bg-[#0b1220]/5 dark:bg-white/10 text-current"
-                )}
-              >
-                {count}
-              </span>
-            )}
+            <span>
+              {label}
+              {count !== null && count !== undefined && ` (${count})`}
+            </span>
           </button>
         );
       })}

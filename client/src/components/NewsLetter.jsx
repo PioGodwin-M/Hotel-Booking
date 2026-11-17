@@ -25,7 +25,7 @@ export const NewsLetter = () => {
 
   return (
     <section className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto my-16 md:my-20">
-      <div className="relative rounded-2xl bg-[#0b1220] text-white p-8 sm:p-12 text-center border border-white/10 shadow-sm">
+      <div className="relative rounded-xl bg-[#0b1220] text-white p-8 sm:p-12 text-center border border-white/10 shadow-sm">
         <div className="relative z-10 max-w-xl mx-auto space-y-3">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Get travel updates & special deals
@@ -47,14 +47,14 @@ export const NewsLetter = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 aria-label="Email address for updates"
-                className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-[10px] bg-white/10 border border-white/20 text-white placeholder:text-stone-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white"
+                className="w-full pl-10 pr-3.5 py-2.5 text-base sm:text-sm rounded-[10px] bg-white/10 border border-white/20 text-white placeholder:text-stone-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white h-11"
               />
             </div>
             <Button
               type="submit"
               variant="secondary"
               size="md"
-              className="w-full sm:w-auto px-5 py-2.5 font-medium shrink-0"
+              className="w-full sm:w-auto px-5 py-2.5 font-medium shrink-0 min-h-[44px] h-11 text-base sm:text-sm flex items-center justify-center"
               rightIcon={<ArrowRight className="w-4 h-4" />}
             >
               Subscribe

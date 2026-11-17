@@ -19,6 +19,7 @@ import {
   Info,
   Map,
   Maximize2,
+  AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -26,6 +27,9 @@ import { assets, facilityIcons } from "../assets/assets";
 import { useAppContext } from "../context/AppContext";
 import { useWishlist } from "../context/WishlistContext";
 import { authApi, publicApi } from "../lib/apiClient";
+import { getStripe } from "../lib/stripeClient";
+import PaymentModal from "../components/PaymentModal";
+import { findMatchingActiveHold } from "../lib/bookingStatus";
 import {
   MOCK_REVIEWS,
   MOCK_RATINGS_BREAKDOWN,
@@ -69,10 +73,50 @@ export const RoomDetails = () => {
   const [checkOutDate, setCheckOutDate] = useState("");
   const [guests, setGuests] = useState(2);
   const [submitting, setSubmitting] = useState(false);
+  const [activeBooking, setActiveBooking] = useState(null);
+  const [reserveError, setReserveError] = useState(null);
+
+  // Pre-load Stripe SDK on mount for instant payment form readiness
+  useEffect(() => {
+    getStripe().catch(() => {});
+  }, []);
 
   // Lightbox modal state
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [userBookings, setUserBookings] = useState([]);
+
+  // Fetch customer bookings to detect existing active holds
+  useEffect(() => {
+    if (!user) {
+      setUserBookings([]);
+      return;
+    }
+    let isCurrent = true;
+    authApi
+      .get("/api/bookings/?page=1&limit=50")
+      .then((res) => {
+        if (isCurrent && res.data?.success) {
+          setUserBookings(res.data.bookings || []);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isCurrent = false;
+    };
+  }, [user]);
+
+  // Match existing active unexpired hold for this hotel, room category, and selected dates
+  const matchingActiveHold = useMemo(() => {
+    if (!user || !room?._id || !checkInDate || !checkOutDate) return null;
+    const hotelId = room?.hotel?._id || room?.hotel;
+    return findMatchingActiveHold(userBookings, {
+      hotelId,
+      roomCategoryId: room._id,
+      checkInDate,
+      checkOutDate,
+    });
+  }, [user, userBookings, room, checkInDate, checkOutDate]);
 
   const pageTitle = room?.hotel?.name
     ? `${room.hotel.name} – ${room.roomType || "Stay"}`
@@ -286,7 +330,7 @@ export const RoomDetails = () => {
 
   // Reservation submit handler
   const handleReserve = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (submitting) return;
 
     if (isSampleStay) {
@@ -316,7 +360,24 @@ export const RoomDetails = () => {
       return;
     }
 
+    // If an active unexpired hold already exists for this stay and dates, open checkout directly without creating a second hold
+    if (matchingActiveHold) {
+      setActiveBooking(matchingActiveHold);
+      return;
+    }
+
     setSubmitting(true);
+    setReserveError(null);
+
+    // 15s safety timeout to prevent stuck spinner if network drops
+    const watchdogTimer = setTimeout(() => {
+      setSubmitting(false);
+      setReserveError({
+        message: "Reservation request timed out. Please try again.",
+        isUnavailable: false,
+      });
+    }, 15000);
+
     try {
       const idempotencyKey =
         typeof crypto !== "undefined" && crypto.randomUUID
@@ -334,23 +395,32 @@ export const RoomDetails = () => {
       };
 
       const { data } = await authApi.post("/api/bookings/", payload);
+      clearTimeout(watchdogTimer);
 
-      if (data.success) {
-        toast.success(`Room held! Please complete payment within ${HOLD_DURATION_TEXT}.`, {
-          duration: 4000,
-        });
-        navigate("/my-bookings");
-        window.scrollTo(0, 0);
+      if (data.success && data.booking) {
+        setUserBookings((prev) => [data.booking, ...prev]);
+        // Open checkout modal immediately over Room Details (Section 1)
+        setActiveBooking(data.booking);
+        setReserveError(null);
       } else {
-        toast.error(data.message || "Booking could not be created");
+        const msg = data.message || "Booking could not be created";
+        const isUnavailable = /unavailable|taken|sold out|inventory|no room/i.test(msg);
+        setReserveError({ message: msg, isUnavailable });
+        toast.error(msg);
       }
     } catch (err) {
-      toast.error(
+      clearTimeout(watchdogTimer);
+      const msg =
         err.response?.data?.message ||
-          err.message ||
-          "Could not hold room. Please try different dates."
-      );
+        err.message ||
+        "Could not hold room. Please try different dates.";
+      const isUnavailable =
+        err.response?.status === 409 ||
+        /unavailable|taken|sold out|inventory|no room/i.test(msg);
+      setReserveError({ message: msg, isUnavailable });
+      toast.error(msg);
     } finally {
+      clearTimeout(watchdogTimer);
       setSubmitting(false);
     }
   };
@@ -374,9 +444,9 @@ export const RoomDetails = () => {
         <Skeleton className="h-8 w-1/3" />
         <Skeleton className="h-4 w-1/4" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-[420px]">
-          <Skeleton className="md:col-span-2 h-full rounded-2xl" />
-          <Skeleton className="h-full rounded-2xl" />
-          <Skeleton className="h-full rounded-2xl" />
+          <Skeleton className="md:col-span-2 h-full rounded-xl" />
+          <Skeleton className="h-full rounded-xl" />
+          <Skeleton className="h-full rounded-xl" />
         </div>
       </div>
     );
@@ -386,7 +456,7 @@ export const RoomDetails = () => {
   if (error || !room) {
     return (
       <div className="pt-36 pb-24 px-4 text-center max-w-lg mx-auto">
-        <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/5 text-gray-500 flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 flex items-center justify-center mx-auto mb-4">
           <Info className="w-6 h-6" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -724,7 +794,7 @@ export const RoomDetails = () => {
         {/* Left 2 Cols: Stay Information */}
         <div className="lg:col-span-2 space-y-10">
           {/* Host Profile Card */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 flex items-start justify-between gap-4">
+          <div className="p-6 rounded-xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 flex items-start justify-between gap-4">
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
@@ -844,7 +914,7 @@ export const RoomDetails = () => {
                 </h2>
               </div>
               {SHOW_SAMPLE_DATA_LABELS && (
-                <Badge variant="neutral" size="sm" className="text-[10px] uppercase font-mono tracking-wider">
+                <Badge variant="neutral" size="sm" className="text-xs font-normal">
                   Sample reviews
                 </Badge>
               )}
@@ -924,7 +994,7 @@ export const RoomDetails = () => {
 
         {/* Right Col: Sticky Desktop Reservation Card */}
         <aside className="hidden lg:block lg:col-span-1 sticky top-28 self-start w-full">
-          <div className="p-6 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm space-y-5">
+          <div className="p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm space-y-5">
             {/* Price Header */}
             <div className="flex items-baseline justify-between border-b border-gray-200 dark:border-gray-800 pb-4">
               <div className="flex items-baseline gap-1.5">
@@ -1009,13 +1079,55 @@ export const RoomDetails = () => {
               variant="primary"
               size="lg"
               onClick={handleReserve}
+              onMouseEnter={() => {
+                getStripe().catch(() => {});
+              }}
               disabled={isSampleStay}
               isLoading={submitting}
               loadingText="Holding room..."
               className="w-full font-semibold shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSampleStay ? "Sample stay. Booking is turned off." : "Reserve"}
+              {isSampleStay
+                ? "Sample stay. Booking is turned off."
+                : matchingActiveHold
+                ? "Continue to payment"
+                : "Reserve"}
             </Button>
+
+            {/* Inline reservation error feedback (Section 1) */}
+            {reserveError && (
+              <div
+                role="alert"
+                className="p-3.5 rounded-[10px] bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 text-xs text-rose-800 dark:text-rose-200 space-y-2.5"
+              >
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">{reserveError.message}</p>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleReserve}
+                    className="px-3 py-1.5 rounded-[10px] bg-[#0B1220] text-white text-xs font-medium hover:bg-black transition-colors cursor-pointer"
+                  >
+                    Try again
+                  </button>
+                  {reserveError.isUnavailable && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCheckInDate("");
+                        setCheckOutDate("");
+                        setReserveError(null);
+                      }}
+                      className="px-3 py-1.5 rounded-[10px] border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                    >
+                      Choose other dates
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             <p className="text-xs text-center text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1.5 leading-normal">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -1046,11 +1158,42 @@ export const RoomDetails = () => {
           size="md"
           disabled={isSampleStay}
           onClick={handleReserve}
+          onMouseEnter={() => {
+            getStripe().catch(() => {});
+          }}
           isLoading={submitting}
+          className="h-11 min-h-[44px] px-6 text-base font-semibold"
         >
-          {isSampleStay ? "Booking turned off" : "Reserve"}
+          {isSampleStay
+            ? "Booking turned off"
+            : matchingActiveHold
+            ? "Continue to payment"
+            : "Reserve"}
         </Button>
       </div>
+
+      {/* Checkout Payment Modal (Direct Checkout Flow, Section 1) */}
+      {activeBooking && (
+        <PaymentModal
+          booking={activeBooking}
+          room={room}
+          onClose={() => {
+            setActiveBooking(null);
+            if (user) {
+              authApi
+                .get("/api/bookings/?page=1&limit=50")
+                .then((res) => {
+                  if (res.data?.success) setUserBookings(res.data.bookings || []);
+                })
+                .catch(() => {});
+            }
+          }}
+          onViewReceipt={(b) => {
+            setActiveBooking(null);
+            navigate("/my-bookings", { state: { viewReceiptBookingId: b?._id } });
+          }}
+        />
+      )}
 
       {/* Full-Screen Lightbox Modal */}
       <AnimatePresence>

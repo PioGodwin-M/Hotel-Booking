@@ -17,3 +17,6 @@ build/
 *.log
 logs/
 .DS_Store
+
+# Database backups
+backups/

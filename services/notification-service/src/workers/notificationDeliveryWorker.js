@@ -169,14 +169,19 @@ const markNotificationFailed = async (
   notification,
   error
 ) => {
+  const isPermanent = error?.classification === "PERMANENT";
   const exhausted =
-    notification.attempts >= notification.maxAttempts;
+    isPermanent || notification.attempts >= notification.maxAttempts;
+
+  const failureReason = isPermanent
+    ? `[PERMANENT_ERROR] ${error.message}`
+    : error.message;
 
   const update = exhausted
     ? {
         $set: {
           status: "FAILED",
-          lastError: error.message,
+          lastError: failureReason,
         },
       }
     : {
@@ -186,7 +191,7 @@ const markNotificationFailed = async (
             Date.now() +
               calculateRetryDelay(notification.attempts)
           ),
-          lastError: error.message,
+          lastError: failureReason,
         },
       };
 
@@ -217,7 +222,11 @@ const markNotificationFailed = async (
 
   if (exhausted) {
     console.error(
-      `Notification permanently failed: ${notification._id}`
+      `Notification permanently failed: ${notification._id} (${isPermanent ? "unrecoverable error" : "max attempts exceeded"}) - ${error.message}`
+    );
+  } else {
+    console.warn(
+      `Notification delivery failed, scheduled retry: ${notification._id} (attempt ${notification.attempts}/${notification.maxAttempts}) - ${error.message}`
     );
   }
 };

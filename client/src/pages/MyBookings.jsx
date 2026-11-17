@@ -1,37 +1,220 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
-  Calendar,
-  MapPin,
-  Users,
-  CreditCard,
   FileText,
   AlertTriangle,
-  Clock,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle,
-  XCircle,
+  Copy,
 } from "lucide-react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import toast from "react-hot-toast";
 import { assets } from "../assets/assets";
 import { useAppContext } from "../context/AppContext";
 import { authApi } from "../lib/apiClient";
+import { getStripe } from "../lib/stripeClient";
 import PaymentModal from "../components/PaymentModal";
 import ReceiptModal from "../components/ReceiptModal";
 import BookingSuccessModal from "../components/BookingSuccessModal";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { Button } from "../components/ui/Button";
-import { Badge } from "../components/ui/Badge";
+import { StatusText } from "../components/ui/StatusText";
 import { Tabs } from "../components/ui/Tabs";
 import { Modal } from "../components/ui/Modal";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SafeImage } from "../components/ui";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { formatINR } from "../lib/formatters";
+import { formatBookingReference } from "../lib/bookingReference";
+import { useHoldCountdown } from "../hooks/useHoldCountdown";
 import { showErrorToast } from "../lib/toast";
-import { HOLD_DURATION_TEXT } from "../config/brand";
+import {
+  getBookingStatusDisplay,
+} from "../lib/bookingStatus";
+
+const BookingCardItem = ({
+  booking,
+  rooms,
+  onPay,
+  onViewReceipt,
+  onCountdownExpire,
+}) => {
+  const matchedRoom = Array.isArray(rooms)
+    ? rooms.find((r) => r._id === booking.roomCategoryId)
+    : null;
+
+  const hotelName = matchedRoom?.hotel?.name || booking.hotel?.name || "Hotel";
+  const hotelCity =
+    matchedRoom?.hotel?.city ||
+    booking.hotel?.city ||
+    (matchedRoom?.hotel?.address ? matchedRoom.hotel.address.split(",").pop().trim() : "") ||
+    "Location";
+  const roomType = matchedRoom?.roomType || booking.room?.roomType || "Standard Room";
+  const roomImage = matchedRoom?.images?.[0] || booking.room?.images?.[0] || assets.roomImg1;
+
+  const checkIn = booking.checkIn || booking.checkInDate;
+  const checkOut = booking.checkOut || booking.checkOutDate;
+  const guestCount = booking.numberOfGuests || booking.guests || 1;
+  const totalAmount = booking.priceSnapshot?.totalAmount ?? booking.totalPrice ?? 0;
+
+  const friendlyRef = formatBookingReference(booking._id);
+
+  // Live hold countdown (Section 3 & 9)
+  const { formatted: countdownFormatted, isExpired: localExpired } = useHoldCountdown(
+    booking,
+    onCountdownExpire
+  );
+
+  // Authoritative booking status display & lifecycle mapping
+  const statusDisplay = getBookingStatusDisplay({
+    booking,
+    isExpiredCountdown: localExpired,
+    countdownText: countdownFormatted,
+  });
+
+  const handleCopyRef = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(friendlyRef);
+    toast.success("Reference copied");
+  };
+
+  const formatDateOnly = (d) => {
+    if (!d) return "—";
+    try {
+      const dt = new Date(d);
+      return new Intl.DateTimeFormat("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }).format(dt);
+    } catch {
+      return d;
+    }
+  };
+
+  return (
+    <div className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 sm:p-6 transition-all hover:border-gray-300 dark:hover:border-gray-700">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+        {/* Left: Photo & Hotel Details (Col 5) */}
+        <div className="lg:col-span-5 flex flex-col sm:flex-row gap-4 items-start">
+          <div className="w-full sm:w-[160px] h-[120px] rounded-[10px] overflow-hidden border border-gray-200 dark:border-gray-800 shrink-0">
+            <SafeImage
+              src={roomImage}
+              alt={hotelName}
+              fallbackLabel={hotelName}
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            {/* Status: plain text, no pill, no border (Section 9) */}
+            <div className="mb-1">
+              <StatusText status={statusDisplay.statusType}>
+                {statusDisplay.label}
+              </StatusText>
+            </div>
+
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 truncate" title={hotelName}>
+              {hotelName}
+            </h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+              {roomType} · {hotelCity}
+            </p>
+
+            {/* Reference with copy button: Inter (not monospace), tabular numbers, 13px */}
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="font-sans text-[13px] tabular-nums font-medium text-gray-700 dark:text-gray-300">
+                {friendlyRef}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyRef}
+                className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded cursor-pointer"
+                title="Copy reference"
+                aria-label="Copy booking reference"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle: Stay Schedule & Total (Col 4) */}
+        <div className="lg:col-span-4 py-3 sm:py-0 border-y lg:border-y-0 lg:border-x border-gray-200 dark:border-gray-800 lg:px-6 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Check in</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                {formatDateOnly(checkIn)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                From 2:00 PM
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Check out</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                {formatDateOnly(checkOut)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                Until 11:00 AM
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800 text-xs">
+            <span className="text-gray-500 dark:text-gray-400">
+              {guestCount} {guestCount === 1 ? "guest" : "guests"} · 1 room
+            </span>
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+              {formatINR(totalAmount)}
+            </span>
+          </div>
+        </div>
+
+        {/* Right: Actions (Col 3) */}
+        <div className="lg:col-span-3 flex flex-col gap-2.5 items-start lg:items-end justify-center w-full">
+          {statusDisplay.canPay && (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => onPay(booking, matchedRoom)}
+              onMouseEnter={() => {
+                getStripe().catch(() => {});
+              }}
+              className="w-full sm:w-auto font-semibold min-h-[44px] h-11 text-sm flex items-center justify-center rounded-[10px]"
+            >
+              Complete payment
+            </Button>
+          )}
+
+          {statusDisplay.statusType === "confirming" && (
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+              Confirming your booking…
+            </span>
+          )}
+
+          {statusDisplay.canViewReceipt && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onViewReceipt(booking)}
+              className="w-full sm:w-auto text-sm min-h-[44px] h-11 flex items-center justify-center rounded-[10px]"
+              leftIcon={<FileText className="w-4 h-4 text-gray-500" />}
+            >
+              View receipt
+            </Button>
+          )}
+
+          {statusDisplay.statusType === "expired" && (
+            <p className="text-xs text-gray-400">Hold expired</p>
+          )}
+
+          {statusDisplay.statusType === "cancelled" && (
+            <p className="text-xs text-gray-400">Booking cancelled</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const MyBookings = () => {
   usePageTitle(
@@ -40,16 +223,14 @@ export const MyBookings = () => {
   );
   const { user, rooms, currency } = useAppContext();
   const navigate = useNavigate();
-  const shouldReduceMotion = useReducedMotion();
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("upcoming");
 
-  // Payment modal state
-  const [activePayment, setActivePayment] = useState(null);
-  const [initiatingPaymentId, setInitiatingPaymentId] = useState(null);
+  // Payment checkout modal state (opens immediately with booking preloaded, Section 1 & 4)
+  const [activePaymentModal, setActivePaymentModal] = useState(null);
 
   // Receipt modal state
   const [receiptBooking, setReceiptBooking] = useState(null);
@@ -61,28 +242,39 @@ export const MyBookings = () => {
   const [cancellingBooking, setCancellingBooking] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  // Fetch bookings from Booking Service
-  const fetchBookings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  // Preload Stripe SDK on page mount
+  useEffect(() => {
+    getStripe().catch(() => {});
+  }, []);
+
+  // Fetch bookings from Booking Service (supports silent background re-fetching)
+  const fetchBookings = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const { data } = await authApi.get("/api/bookings/?page=1&limit=50");
       if (data.success) {
         setBookings(data.bookings || []);
-      } else {
+      } else if (!silent) {
         const msg = data.message || "Could not retrieve bookings";
         setError(msg);
         showErrorToast(msg, { id: "my-bookings-load-error", onRetry: () => fetchBookings() });
       }
     } catch {
-      const msg = "We couldn't load your bookings. Please try again.";
-      setError(msg);
-      showErrorToast(msg, {
-        id: "my-bookings-load-error",
-        onRetry: () => fetchBookings(),
-      });
+      if (!silent) {
+        const msg = "We couldn't load your bookings. Please try again.";
+        setError(msg);
+        showErrorToast(msg, {
+          id: "my-bookings-load-error",
+          onRetry: () => fetchBookings(),
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -104,45 +296,12 @@ export const MyBookings = () => {
     }
   }, [user, fetchBookings]);
 
-  // Initiate Stripe Payment
-  const handlePayment = async (booking) => {
-    if (initiatingPaymentId) return;
-    setInitiatingPaymentId(booking._id);
-
-    try {
-      // Deterministic idempotency key derived from booking ID.
-      const idempotencyKey = `pay_booking_${booking._id}`;
-
-      const { data } = await authApi.post(
-        "/api/payments/",
-        { bookingId: booking._id },
-        {
-          headers: {
-            "Idempotency-Key": idempotencyKey,
-          },
-        }
-      );
-
-      if (data.success && data.data?.clientSecret) {
-        setActivePayment({
-          bookingId: booking._id,
-          clientSecret: data.data.clientSecret,
-          amountMinor: data.data.amountMinor,
-          currency: data.data.currency || "INR",
-          booking,
-        });
-      } else {
-        toast.error(data.message || "Payment session could not be established");
-      }
-    } catch (err) {
-      toast.error(
-        err.response?.data?.message ||
-          err.message ||
-          "Payment session could not be started"
-      );
-    } finally {
-      setInitiatingPaymentId(null);
-    }
+  // Open Checkout Modal immediately without "Starting..." delay (Section 1 & 4)
+  const handleOpenCheckout = (booking, matchedRoom) => {
+    setActivePaymentModal({
+      booking,
+      room: matchedRoom,
+    });
   };
 
   // Perform confirmed cancellation (ONLY permitted for HELD bookings)
@@ -157,7 +316,7 @@ export const MyBookings = () => {
       if (data.success) {
         toast.success("Booking cancelled and room released");
         setCancellingBooking(null);
-        fetchBookings();
+        fetchBookings({ silent: true });
       } else {
         toast.error(data.message || "Could not cancel booking");
       }
@@ -200,31 +359,31 @@ export const MyBookings = () => {
   const currentBookings = categorizedBookings[activeTab] || [];
 
   const tabItems = [
-    { id: "upcoming", label: "Upcoming", count: categorizedBookings.upcoming.length },
-    { id: "past", label: "Past stays", count: categorizedBookings.past.length },
-    { id: "cancelled", label: "Cancelled", count: categorizedBookings.cancelled.length },
+    { id: "upcoming", label: "Upcoming", count: loading ? undefined : categorizedBookings.upcoming.length },
+    { id: "past", label: "Past stays", count: loading ? undefined : categorizedBookings.past.length },
+    { id: "cancelled", label: "Cancelled", count: loading ? undefined : categorizedBookings.cancelled.length },
   ];
 
   return (
-    <div className="pt-24 md:pt-32 pb-28 page-container">
-      {/* Page Header */}
+    <div className="pt-24 md:pt-32 pb-28 page-container min-h-[calc(100svh-56px-320px)]">
+      {/* Page Header (Section 9) */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200 dark:border-gray-800">
         <div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+          <h1 className="text-[32px] font-bold tracking-tight text-gray-900 dark:text-gray-100">
             My bookings
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 max-w-xl">
-            View your upcoming and past stays, complete pending payments, and download receipts.
+            Upcoming and past stays, payments and receipts.
           </p>
         </div>
 
-        {/* Tab Pills */}
+        {/* Clean plain underline tabs (Section 9) */}
         <div className="self-start md:self-end">
           <Tabs
             tabs={tabItems}
             activeTab={activeTab}
             onChange={setActiveTab}
-            variant="pill"
+            variant="underline"
           />
         </div>
       </div>
@@ -247,9 +406,20 @@ export const MyBookings = () => {
             </Button>
           </div>
         ) : loading ? (
-          <div className="py-20 text-center text-sm text-gray-500 flex flex-col items-center gap-3">
-            <div className="w-8 h-8 rounded-full border-2 border-gray-900 dark:border-white border-t-transparent animate-spin" />
-            <span>Loading your bookings...</span>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-stone-200 dark:border-white/10 p-5 sm:p-6 bg-white dark:bg-[#151d30] animate-pulse flex flex-col md:flex-row gap-5"
+              >
+                <div className="w-full md:w-[160px] h-[120px] bg-stone-200 dark:bg-white/10 rounded-[10px] shrink-0" />
+                <div className="flex-1 space-y-3">
+                  <div className="h-5 bg-stone-200 dark:bg-white/10 rounded w-1/4" />
+                  <div className="h-6 bg-stone-200 dark:bg-white/10 rounded w-1/2" />
+                  <div className="h-4 bg-stone-200 dark:bg-white/10 rounded w-1/3" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : currentBookings.length === 0 ? (
           <EmptyState
@@ -272,234 +442,33 @@ export const MyBookings = () => {
             className="my-10"
           />
         ) : (
-          currentBookings.map((booking, idx) => {
-            const matchedRoom = Array.isArray(rooms)
-              ? rooms.find((r) => r._id === booking.roomCategoryId)
-              : null;
-
-            const hotelName =
-              matchedRoom?.hotel?.name || booking.hotel?.name || "Hotel";
-            const hotelAddress =
-              matchedRoom?.hotel?.address ||
-              booking.hotel?.address ||
-              booking.hotel?.city ||
-              "Location";
-            const roomType =
-              matchedRoom?.roomType || booking.room?.roomType || "Standard Room";
-            const roomImage =
-              matchedRoom?.images?.[0] ||
-              booking.room?.images?.[0] ||
-              assets.roomImg1;
-
-            const checkIn = booking.checkIn || booking.checkInDate;
-            const checkOut = booking.checkOut || booking.checkOutDate;
-            const guestCount = booking.numberOfGuests || booking.guests || 1;
-            const totalAmount =
-              booking.priceSnapshot?.totalAmount ?? booking.totalPrice ?? 0;
-
-            const isConfirmed = booking.status === "CONFIRMED";
-            const isHeld = booking.status === "HELD";
-            const isPaymentPending = booking.status === "PAYMENT_PENDING";
-            const isCancelled = booking.status === "CANCELLED";
-
-            // Payment is possible if HELD or PAYMENT_PENDING
-            const canPay = isHeld || isPaymentPending;
-            // Customer cancellation is strictly permitted only when booking status is 'HELD'
-            const canCancel = isHeld;
-
-            return (
-              <motion.div
-                key={booking._id}
-                initial={
-                  shouldReduceMotion ? undefined : { opacity: 0, y: 8 }
-                }
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: idx * 0.04 }}
-                className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-2xs hover:border-gray-300 dark:hover:border-gray-700 transition-all p-5 sm:p-6"
-              >
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
-                  {/* Col 1: Photo & Hotel Info */}
-                  <div className="lg:col-span-5 flex flex-col sm:flex-row gap-4 items-start">
-                    <div className="w-full sm:w-32 h-24 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shrink-0">
-                      <SafeImage
-                        src={roomImage}
-                        alt={hotelName}
-                        fallbackLabel={hotelName}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Badge
-                          variant={
-                            isConfirmed
-                              ? "confirmed"
-                              : isHeld
-                              ? "held"
-                              : isPaymentPending
-                              ? "pending"
-                              : isCancelled
-                              ? "cancelled"
-                              : "failed"
-                          }
-                          size="sm"
-                          dot
-                        >
-                          {isConfirmed
-                            ? "Confirmed"
-                            : isHeld
-                            ? `Payment pending (${HOLD_DURATION_TEXT} hold)`
-                            : isPaymentPending
-                            ? "Processing"
-                            : isCancelled
-                            ? "Cancelled"
-                            : "Expired"}
-                        </Badge>
-                      </div>
-
-                      <h3
-                        className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 truncate"
-                        title={hotelName}
-                      >
-                        {hotelName}
-                      </h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">
-                        {roomType} &middot; {guestCount} {guestCount === 1 ? "guest" : "guests"}
-                      </p>
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-                        <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                        <span className="truncate">{hotelAddress}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Col 2: Dates & Total */}
-                  <div className="lg:col-span-4 py-3 sm:py-0 border-y lg:border-y-0 lg:border-x border-gray-200 dark:border-gray-800 lg:px-6">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-                          Check in
-                        </p>
-                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mt-0.5">
-                          {checkIn
-                            ? new Date(checkIn).toLocaleDateString("en-IN", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : "—"}
-                        </p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
-                          From 2:00 PM
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-                          Check out
-                        </p>
-                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mt-0.5">
-                          {checkOut
-                            ? new Date(checkOut).toLocaleDateString("en-IN", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : "—"}
-                        </p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
-                          Until 11:00 AM
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs">
-                      <span className="text-gray-500 dark:text-gray-400">
-                        Total amount
-                      </span>
-                      <span className="font-bold text-base text-gray-900 dark:text-gray-100 tabular-nums">
-                        {formatINR(totalAmount)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Col 3: Actions */}
-                  <div className="lg:col-span-3 flex flex-col gap-2 items-start lg:items-end justify-center">
-                    {/* Pay Now Button */}
-                    {canPay && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handlePayment(booking)}
-                        disabled={initiatingPaymentId === booking._id}
-                        isLoading={initiatingPaymentId === booking._id}
-                        loadingText="Starting..."
-                        className="w-full sm:w-auto font-semibold"
-                        leftIcon={<CreditCard className="w-3.5 h-3.5" />}
-                      >
-                        Complete payment
-                      </Button>
-                    )}
-
-                    {/* Cancel Hold Button (ONLY for HELD bookings) */}
-                    {canCancel && (
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => setCancellingBooking(booking)}
-                        className="w-full sm:w-auto text-xs"
-                      >
-                        Cancel hold
-                      </Button>
-                    )}
-
-                    {/* View Official Receipt */}
-                    {isConfirmed && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setReceiptBooking(booking)}
-                        className="w-full sm:w-auto text-xs"
-                        leftIcon={<FileText className="w-3.5 h-3.5 text-gray-500" />}
-                      >
-                        View receipt
-                      </Button>
-                    )}
-
-                    {isCancelled && (
-                      <p className="text-xs text-gray-400 flex items-center gap-1">
-                        <XCircle className="w-3.5 h-3.5 text-gray-400" />
-                        <span>Cancelled</span>
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })
+          currentBookings.map((booking) => (
+            <BookingCardItem
+              key={booking._id}
+              booking={booking}
+              rooms={rooms}
+              onPay={handleOpenCheckout}
+              onViewReceipt={(b) => setReceiptBooking(b)}
+              onCountdownExpire={() => fetchBookings({ silent: true })}
+            />
+          ))
         )}
       </div>
 
-      {/* Stripe Payment Modal */}
-      {activePayment && (
+      {/* Stripe Payment Checkout Modal (Extended Two-Column Modal, Section 1 & 2) */}
+      {activePaymentModal && (
         <ErrorBoundary>
           <PaymentModal
-            bookingId={activePayment.bookingId?._id || activePayment.bookingId}
-            clientSecret={activePayment.clientSecret}
-            amountMinor={activePayment.amountMinor}
-            currency={activePayment.currency}
-            onClose={() => setActivePayment(null)}
-            onSuccess={(confirmedBooking) => {
-              setActivePayment(null);
-              fetchBookings();
-              // Show celebration modal strictly when authoritative backend confirmed
-              if (confirmedBooking && confirmedBooking.status === "CONFIRMED") {
-                setSuccessBooking(confirmedBooking);
-              }
+            booking={activePaymentModal.booking}
+            room={activePaymentModal.room}
+            onClose={() => {
+              setActivePaymentModal(null);
+              fetchBookings({ silent: true });
             }}
-            onPending={() => {
-              setActivePayment(null);
-              fetchBookings();
+            onViewReceipt={(b) => {
+              setActivePaymentModal(null);
+              fetchBookings({ silent: true });
+              setReceiptBooking(b);
             }}
           />
         </ErrorBoundary>
@@ -527,7 +496,7 @@ export const MyBookings = () => {
               size="md"
               onClick={() => setCancellingBooking(null)}
               disabled={isCancelling}
-              className="flex-1"
+              className="flex-1 rounded-[10px]"
             >
               Keep hold
             </Button>
@@ -537,7 +506,7 @@ export const MyBookings = () => {
               onClick={confirmCancel}
               isLoading={isCancelling}
               loadingText="Cancelling..."
-              className="flex-1"
+              className="flex-1 rounded-[10px]"
             >
               Cancel hold
             </Button>

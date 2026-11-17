@@ -117,35 +117,64 @@ const Navbar = () => {
           })}
         </nav>
 
+        {/* Sticky Compact Search Pill (Desktop - Section 1.5) */}
+        {isScrolled && (
+          <button
+            type="button"
+            onClick={() => {
+              if (isHome) {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                setTimeout(() => {
+                  const destInput = document.getElementById("hero-destination");
+                  if (destInput) destInput.focus();
+                }, 300);
+              } else {
+                navigate("/rooms");
+              }
+            }}
+            aria-label="Search stays by destination, dates and guests"
+            className="hidden lg:flex items-center gap-3 px-4 py-1.5 rounded-full border border-stone-200 dark:border-white/15 bg-white dark:bg-[#151d30] shadow-sm hover:shadow-md transition-all text-xs font-medium text-[#0b1220] dark:text-[#faf8f5] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0b1220]"
+          >
+            <span className="font-semibold text-stone-800 dark:text-stone-200">Where</span>
+            <span className="text-stone-300 dark:text-stone-600">·</span>
+            <span className="text-stone-600 dark:text-stone-400">Dates</span>
+            <span className="text-stone-300 dark:text-stone-600">·</span>
+            <span className="text-stone-600 dark:text-stone-400">Guests</span>
+            <div className="w-6 h-6 rounded-full bg-[#0b1220] dark:bg-white text-white dark:text-[#0b1220] flex items-center justify-center ml-0.5 shrink-0">
+              <Search className="w-3 h-3" />
+            </div>
+          </button>
+        )}
+
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Search Trigger */}
+          {/* Search Trigger (Mobile / Compact) */}
           <Link
             to="/rooms"
             aria-label="Search stays"
             className={cn(
-              "p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/10",
+              "w-11 h-11 flex items-center justify-center rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/10 lg:hidden",
               textColorClass
             )}
           >
             <Search className="w-5 h-5" />
           </Link>
 
-          {/* Wishlist Link with Badge */}
+          {/* Wishlist Link (Filled heart when active, count only on saved stays page) */}
           <Link
             to="/rooms?wishlist=true"
             aria-label="View saved stays"
             className={cn(
-              "relative p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/10",
+              "relative w-11 h-11 flex items-center justify-center rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/10",
               textColorClass
             )}
           >
-            <Heart className="w-5 h-5" />
-            {wishlistCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center font-mono">
-                {wishlistCount}
-              </span>
-            )}
+            <Heart
+              className={cn(
+                "w-5 h-5 transition-colors",
+                wishlistCount > 0 ? "fill-rose-600 text-rose-600" : ""
+              )}
+            />
           </Link>
 
           {/* Host Portal CTA (Desktop) */}
@@ -201,14 +230,14 @@ const Navbar = () => {
             </Button>
           )}
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button (44px target) */}
           <button
             type="button"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle navigation menu"
             aria-expanded={isMenuOpen}
             className={cn(
-              "md:hidden p-2 rounded-lg transition-colors cursor-pointer",
+              "md:hidden w-11 h-11 flex items-center justify-center rounded-lg transition-colors cursor-pointer",
               textColorClass
             )}
           >
@@ -217,86 +246,106 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer with 50% Dark Backdrop (Section 2 #6) */}
       <AnimatePresence>
         {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.15 }}
-            className="md:hidden fixed inset-x-0 top-[56px] bg-white dark:bg-[#0b1220] border-b border-[#e7e5e0] dark:border-white/10 shadow-lg px-6 py-6 flex flex-col gap-5 text-left"
-          >
-            <div className="flex flex-col gap-2">
-              {navLinks.map((link) => (
+          <>
+            {/* 50% dark backdrop - tap to close */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              aria-hidden="true"
+            />
+
+            {/* Drawer Panel */}
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="md:hidden fixed inset-x-0 top-[56px] bg-white dark:bg-[#0b1220] border-b border-[#e7e5e0] dark:border-white/10 shadow-xl px-6 py-4 flex flex-col gap-3 text-left z-50 max-h-[calc(100svh-56px)] overflow-y-auto"
+            >
+              <div className="flex flex-col">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="min-h-[48px] flex items-center text-base font-semibold text-[#0b1220] dark:text-[#faf8f5] border-b border-stone-100 dark:border-white/5 active:bg-stone-50"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+
                 <Link
-                  key={link.path}
-                  to={link.path}
+                  to="/rooms?wishlist=true"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-base font-semibold text-[#0b1220] dark:text-[#faf8f5] py-2 border-b border-stone-100 dark:border-white/5"
+                  className="min-h-[48px] flex items-center justify-between text-base font-semibold text-[#0b1220] dark:text-[#faf8f5] border-b border-stone-100 dark:border-white/5 active:bg-stone-50"
                 >
-                  {link.name}
-                </Link>
-              ))}
-
-              <Link
-                to="/rooms?wishlist=true"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center justify-between text-sm font-medium text-[#0b1220] dark:text-[#faf8f5] py-2"
-              >
-                <span className="flex items-center gap-2">
-                  <Heart className="w-4 h-4 text-rose-600" /> Saved Stays
-                </span>
-                {wishlistCount > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold font-mono">
-                    {wishlistCount}
+                  <span className="flex items-center gap-2">
+                    <Heart
+                      className={cn(
+                        "w-4 h-4 text-rose-600",
+                        wishlistCount > 0 ? "fill-rose-600" : ""
+                      )}
+                    />{" "}
+                    Saved stays
                   </span>
-                )}
-              </Link>
-            </div>
+                  {wishlistCount > 0 && (
+                    <span className="text-xs text-stone-500 tabular-nums">
+                      ({wishlistCount})
+                    </span>
+                  )}
+                </Link>
+              </div>
 
-            {user && (
-              <div className="flex flex-col gap-2.5 pt-2 border-t border-[#e7e5e0] dark:border-white/10">
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    navigate("/my-bookings");
-                  }}
-                  leftIcon={<CalendarCheck className="w-4 h-4" />}
-                >
-                  My Bookings
-                </Button>
+              {user ? (
+                <div className="flex flex-col gap-2.5 pt-2">
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      navigate("/my-bookings");
+                    }}
+                    className="min-h-[48px] justify-start text-base"
+                    leftIcon={<CalendarCheck className="w-4 h-4" />}
+                  >
+                    My Bookings
+                  </Button>
 
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      isOwner ? navigate("/owner") : setShowHotelReg(true);
+                    }}
+                    className="min-h-[48px] justify-start text-base"
+                    leftIcon={<Building2 className="w-4 h-4" />}
+                  >
+                    {isOwner ? "Owner Dashboard" : "List your property"}
+                  </Button>
+                </div>
+              ) : (
                 <Button
                   variant="primary"
                   size="md"
                   onClick={() => {
                     setIsMenuOpen(false);
-                    isOwner ? navigate("/owner") : setShowHotelReg(true);
+                    openSignIn();
                   }}
-                  leftIcon={<Building2 className="w-4 h-4" />}
+                  className="w-full min-h-[48px] text-base font-semibold mt-2"
                 >
-                  {isOwner ? "Owner Dashboard" : "List your property"}
+                  Sign In
                 </Button>
-              </div>
-            )}
-
-            {!user && (
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  openSignIn();
-                }}
-                className="w-full"
-              >
-                Sign In
-              </Button>
-            )}
-          </motion.div>
+              )}
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </header>

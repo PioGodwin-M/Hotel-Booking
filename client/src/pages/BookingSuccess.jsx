@@ -37,8 +37,8 @@ export const BookingSuccess = () => {
 
   return (
     <div className="pt-32 pb-24 px-4 sm:px-6 lg:px-8 max-w-lg mx-auto text-center space-y-6">
-      <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-200 dark:border-emerald-800">
-        <CheckCircle2 className="w-8 h-8" />
+      <div className="mx-auto flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2 className="w-10 h-10" />
       </div>
 
       <div>
@@ -65,7 +65,7 @@ export const BookingSuccess = () => {
             rightIcon={<ArrowRight className="w-4 h-4" />}
             className="w-full font-semibold"
           >
-            View in My Bookings
+            View in My bookings
           </Button>
         </Link>
         <Link to="/rooms" className="w-full sm:w-auto">

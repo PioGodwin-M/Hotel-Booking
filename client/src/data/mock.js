@@ -15,9 +15,11 @@
 
 /**
  * Master toggle to display "Sample" badges on placeholder components.
- * Set to false so the UI displays cleanly without placeholder badges.
+ * Dynamically driven by VITE_USE_SAMPLE_DATA environment variable.
  */
-export const SHOW_SAMPLE_DATA_LABELS = false;
+export const SHOW_SAMPLE_DATA_LABELS =
+  import.meta.env.VITE_USE_SAMPLE_DATA === "true" ||
+  import.meta.env.VITE_USE_SAMPLE_DATA === true;
 
 export const MOCK_REVIEWS = [
   {

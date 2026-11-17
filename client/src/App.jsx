@@ -21,9 +21,12 @@ const Dashboard = lazy(() => import("./pages/hotelOwner/Dashboard"));
 const AddRoom = lazy(() => import("./pages/hotelOwner/AddRoom"));
 const ListRoom = lazy(() => import("./pages/hotelOwner/ListRoom"));
 const CardStressTest = lazy(() => import("./pages/CardStressTest"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Cancellation = lazy(() => import("./pages/Cancellation"));
 
 const PageLoader = () => (
-  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-xs tracking-wider text-[#0b1220]/60 dark:text-[#faf8f5]/60">
+  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-xs text-[#0b1220]/60 dark:text-[#faf8f5]/60">
     <div className="w-8 h-8 rounded-full border-2 border-[#0b1220] dark:border-white border-t-transparent animate-spin" />
     <span>Loading...</span>
   </div>
@@ -108,6 +111,9 @@ function App() {
                 <Route path="/my-bookings" element={<MyBookings />} />
                 <Route path="/booking-success" element={<BookingSuccess />} />
                 <Route path="/stress-test" element={<CardStressTest />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/cancellation" element={<Cancellation />} />
                 <Route path="/owner" element={<Layout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="add-room" element={<AddRoom />} />

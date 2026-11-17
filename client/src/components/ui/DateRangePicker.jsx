@@ -61,6 +61,7 @@ export const DateRangePicker = ({
   className = "",
   compact = false,
   singleMonth = false,
+  stacked = false,
   anchorRef = null,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -414,11 +415,24 @@ export const DateRangePicker = ({
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <CalendarIcon className="w-4 h-4 text-stone-400 shrink-0" />
-          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#0b1220] dark:text-[#faf8f5] truncate">
-            <span>{startDate ? formatShortDate(startDate) : "Add check-in"}</span>
-            <span className="text-stone-400 font-normal">→</span>
-            <span>{endDate ? formatShortDate(endDate) : "Add check-out"}</span>
-          </div>
+          {stacked ? (
+            <div className="flex-1 flex flex-col gap-0.5 text-xs font-semibold text-[#0b1220] dark:text-[#faf8f5]">
+              <div className="flex items-center justify-between">
+                <span className="text-stone-500 dark:text-stone-400 font-normal">Check-in:</span>
+                <span>{startDate ? formatShortDate(startDate) : "Add date"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-stone-500 dark:text-stone-400 font-normal">Check-out:</span>
+                <span>{endDate ? formatShortDate(endDate) : "Add date"}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#0b1220] dark:text-[#faf8f5] truncate">
+              <span>{startDate ? formatShortDate(startDate) : "Add check-in"}</span>
+              <span className="text-stone-400 font-normal">→</span>
+              <span>{endDate ? formatShortDate(endDate) : "Add check-out"}</span>
+            </div>
+          )}
         </div>
       </button>
 

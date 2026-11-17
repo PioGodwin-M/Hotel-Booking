@@ -66,8 +66,8 @@ export const Hero = () => {
     <section
       className="hero-section relative flex flex-col justify-end bg-[#0b1220] overflow-hidden"
       style={{
-        height: typeof window !== "undefined" && window.innerWidth < 640 ? "auto" : "clamp(390px, calc(100svh - var(--recommended-block-height, 350px) - 50px), 590px)",
-        minHeight: typeof window !== "undefined" && window.innerWidth < 640 ? "0" : "390px",
+        height: typeof window !== "undefined" && window.innerWidth < 640 ? "auto" : "clamp(440px, calc(100svh - var(--recommended-block-height, 280px)), 640px)",
+        minHeight: typeof window !== "undefined" && window.innerWidth < 640 ? "0" : "440px",
       }}
     >
       {/* Background Image: brighter photo with daytime lighting */}
@@ -89,7 +89,7 @@ export const Hero = () => {
           initial={shouldReduceMotion ? undefined : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white leading-[1.15] max-w-2xl"
+          className="text-[36px] sm:text-[40px] md:text-5xl font-bold tracking-tight text-white leading-[1.1] max-w-2xl"
         >
           Find your next stay
         </motion.h1>
@@ -99,9 +99,9 @@ export const Hero = () => {
           initial={shouldReduceMotion ? undefined : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15 }}
-          className="mt-2 sm:mt-2.5 text-sm sm:text-base md:text-lg text-stone-200 max-w-xl font-normal leading-relaxed"
+          className="mt-2 sm:mt-2.5 text-base md:text-lg text-stone-200 max-w-xl font-normal leading-relaxed"
         >
-          Browse hotel rooms and vacation stays. See the full price before you pay, reserve your room, and pay to confirm.
+          Hotels, rooms and holiday stays. See the full price before you pay.
         </motion.p>
 
         {/* Search Capsule */}
@@ -111,7 +111,7 @@ export const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           onSubmit={onSearch}
-          className="mt-4 sm:mt-6 w-full max-w-4xl bg-white dark:bg-[#151d30] rounded-2xl p-3 sm:p-3.5 shadow-xl border border-[#e7e5e0] dark:border-white/10 text-[#0b1220] dark:text-[#faf8f5] flex flex-col md:flex-row items-stretch md:items-center gap-2.5"
+          className="mt-4 sm:mt-6 w-full max-w-4xl bg-white dark:bg-[#151d30] rounded-xl p-3 sm:p-3.5 shadow-xl border border-[#e7e5e0] dark:border-white/10 text-[#0b1220] dark:text-[#faf8f5] flex flex-col md:flex-row items-stretch md:items-center gap-2.5"
         >
           {/* Destination */}
           <div className="flex-1 px-3.5 py-2 border-b md:border-b-0 md:border-r border-[#e7e5e0] dark:border-white/10 text-left">
@@ -129,7 +129,7 @@ export const Hero = () => {
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               placeholder="City, area or hotel"
-              className="w-full mt-1 bg-transparent text-sm font-semibold text-[#0b1220] dark:text-[#faf8f5] placeholder:text-stone-400 dark:placeholder:text-stone-500 placeholder:font-normal focus:outline-none truncate"
+              className="w-full mt-1 bg-transparent text-base md:text-sm font-semibold text-[#0b1220] dark:text-[#faf8f5] placeholder:text-stone-400 dark:placeholder:text-stone-500 placeholder:font-normal focus:outline-none truncate"
             />
             <datalist id="destination-list">
               {cities.map((c, i) => (
@@ -175,7 +175,7 @@ export const Hero = () => {
               type="submit"
               variant="primary"
               size="lg"
-              className="w-full md:w-auto h-full px-6 py-3 font-medium shrink-0"
+              className="w-full md:w-auto h-12 md:h-full px-6 py-3 font-semibold shrink-0 text-base flex items-center justify-center"
               leftIcon={<Search className="w-4 h-4" />}
             >
               Search

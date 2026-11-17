@@ -15,12 +15,12 @@ export const EmptyState = ({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center text-center p-8 md:p-12 rounded-2xl bg-white dark:bg-[#151d30] border border-[#e7e5e0] dark:border-white/10 shadow-2xs max-w-md mx-auto",
+        "flex flex-col items-center justify-center text-center p-8 md:p-12 rounded-xl bg-white dark:bg-[#151d30] border border-[#e7e5e0] dark:border-white/10 shadow-2xs max-w-md mx-auto",
         className
       )}
     >
-      <div className="w-12 h-12 rounded-xl bg-[#f0ede6] dark:bg-white/10 text-[#0b1220] dark:text-[#faf8f5] flex items-center justify-center mb-4">
-        {icon || <Search className="w-6 h-6 stroke-[1.75]" aria-hidden="true" />}
+      <div className="text-gray-400 dark:text-gray-500 mb-3 flex items-center justify-center">
+        {icon || <Search className="w-8 h-8 stroke-[1.5]" aria-hidden="true" />}
       </div>
       <h3 className="font-sans text-lg md:text-xl font-semibold text-[#0b1220] dark:text-[#faf8f5] mb-1.5">
         {title}

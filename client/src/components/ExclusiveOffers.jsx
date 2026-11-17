@@ -72,7 +72,7 @@ export const ExclusiveOffers = () => {
                 <h3 className="text-lg font-bold text-[#0b1220] dark:text-[#faf8f5]">
                   {offer.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 mt-1.5 leading-relaxed">
+                <p className="text-sm text-stone-600 dark:text-stone-400 mt-1.5 leading-relaxed">
                   {offer.description}
                 </p>
                 <p className="text-sm font-medium text-stone-700 dark:text-stone-300 mt-2.5">
@@ -86,24 +86,24 @@ export const ExclusiveOffers = () => {
                   type="button"
                   onClick={() => handleCopy(offer.code)}
                   aria-label={`Copy coupon code ${offer.code}`}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-white/5 text-xs font-mono font-semibold text-[#0b1220] dark:text-[#faf8f5] hover:bg-stone-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                  className="min-h-[44px] flex items-center gap-2 px-3.5 py-2 rounded-lg border border-dashed border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-white/5 text-sm tabular-nums tracking-[0.02em] font-semibold text-[#0b1220] dark:text-[#faf8f5] hover:bg-stone-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   {copiedCode === offer.code ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <Check className="w-4 h-4 text-emerald-600" />
                   ) : (
-                    <Copy className="w-3.5 h-3.5 text-stone-500" />
+                    <Copy className="w-4 h-4 text-stone-500" />
                   )}
                   <span>{offer.code}</span>
-                  <span className="text-[11px] font-sans font-medium text-stone-500 pl-1 border-l border-stone-200 dark:border-stone-700">
+                  <span className="text-xs font-sans font-medium text-stone-500 pl-1.5 border-l border-stone-200 dark:border-stone-700">
                     {copiedCode === offer.code ? "Copied" : "Copy"}
                   </span>
                 </button>
 
                 <Link
                   to="/rooms"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#0b1220] dark:text-white hover:underline"
+                  className="min-h-[44px] inline-flex items-center gap-1.5 text-sm font-semibold text-[#0b1220] dark:text-white hover:underline py-1"
                 >
-                  View stays <ArrowRight className="w-3.5 h-3.5" />
+                  View stays <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>

@@ -20,7 +20,7 @@ const LayoutContent = () => {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-[#faf8f5] dark:bg-[#0b1220] text-[#0b1220] dark:text-[#faf8f5] gap-3">
         <div className="w-8 h-8 rounded-full border-2 border-[#c8a15a] border-t-transparent animate-spin" />
-        <span className="text-xs uppercase tracking-widest text-[#0b1220]/60 dark:text-[#faf8f5]/60 font-semibold">
+        <span className="text-xs text-[#0b1220]/70 dark:text-[#faf8f5]/70 font-medium">
           Verifying host credentials...
         </span>
       </div>
@@ -41,7 +41,7 @@ const LayoutContent = () => {
         >
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <span className="font-semibold px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100 text-[10px] uppercase tracking-wider">
+            <span className="font-medium px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100 text-xs">
               Sample mode active
             </span>
             <span className="hidden sm:inline">Write actions (registering properties, adding rooms, and changing availability) are disabled to protect data integrity.</span>

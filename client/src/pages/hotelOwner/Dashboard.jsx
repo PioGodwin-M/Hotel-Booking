@@ -13,7 +13,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useOwnerContext } from "../../context/OwnerContext";
 import { authApi } from "../../lib/apiClient";
 import { Button } from "../../components/ui/Button";
-import { Badge } from "../../components/ui/Badge";
+import { StatusText } from "../../components/ui/StatusText";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { usePageTitle } from "../../hooks/usePageTitle";
@@ -361,9 +361,7 @@ export const Dashboard = () => {
               <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                 Confirmed revenue
               </span>
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <CreditCard className="w-4 h-4" />
-              </div>
+              <CreditCard className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 tabular-nums">
               <CountUp target={confirmedRevenue} isMoney />
@@ -379,9 +377,7 @@ export const Dashboard = () => {
               <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                 Total bookings
               </span>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <CalendarCheck className="w-4 h-4" />
-              </div>
+              <CalendarCheck className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 tabular-nums">
               <CountUp target={totalBookingsCount} />
@@ -397,9 +393,7 @@ export const Dashboard = () => {
               <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                 Room categories
               </span>
-              <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <BedDouble className="w-4 h-4" />
-              </div>
+              <BedDouble className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 tabular-nums">
               <CountUp target={roomsCount} />
@@ -415,9 +409,7 @@ export const Dashboard = () => {
               <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                 Properties
               </span>
-              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                <Building2 className="w-4 h-4" />
-              </div>
+              <Building2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 tabular-nums">
               <CountUp target={hotels.length} />
@@ -553,21 +545,7 @@ export const Dashboard = () => {
                           {formatINR(amount)}
                         </td>
                         <td className="py-3 px-3 text-right">
-                          <Badge
-                            variant={
-                              b.status === "CONFIRMED"
-                                ? "confirmed"
-                                : b.status === "HELD"
-                                ? "held"
-                                : b.status === "PAYMENT_PENDING"
-                                ? "pending"
-                                : b.status === "CANCELLED"
-                                ? "cancelled"
-                                : "failed"
-                            }
-                            size="sm"
-                            dot
-                          >
+                          <StatusText status={b.status}>
                             {b.status === "CONFIRMED"
                               ? "Confirmed"
                               : b.status === "HELD"
@@ -577,7 +555,7 @@ export const Dashboard = () => {
                               : b.status === "CANCELLED"
                               ? "Cancelled"
                               : "Expired"}
-                          </Badge>
+                          </StatusText>
                         </td>
                       </tr>
                     );
@@ -609,19 +587,7 @@ export const Dashboard = () => {
                           {b._id?.slice(-8).toUpperCase()}
                         </p>
                       </div>
-                      <Badge
-                        variant={
-                          b.status === "CONFIRMED"
-                            ? "confirmed"
-                            : b.status === "HELD"
-                            ? "held"
-                            : b.status === "CANCELLED"
-                            ? "cancelled"
-                            : "pending"
-                        }
-                        size="sm"
-                        dot
-                      >
+                      <StatusText status={b.status}>
                         {b.status === "CONFIRMED"
                           ? "Confirmed"
                           : b.status === "HELD"
@@ -629,7 +595,7 @@ export const Dashboard = () => {
                           : b.status === "CANCELLED"
                           ? "Cancelled"
                           : "Pending"}
-                      </Badge>
+                      </StatusText>
                     </div>
 
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-200 dark:border-gray-800">
