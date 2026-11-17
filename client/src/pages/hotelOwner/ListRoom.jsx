@@ -22,6 +22,7 @@ import { SafeImage } from "../../components/ui/SafeImage";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { formatINR } from "../../lib/formatters";
 import { showErrorToast } from "../../lib/toast";
+import { MissingLocationNotice } from "../../components/hotelOwner/MissingLocationNotice";
 import { cn } from "../../lib/utils";
 
 export const ListRoom = () => {
@@ -185,6 +186,9 @@ export const ListRoom = () => {
           </Button>
         </Link>
       </div>
+
+      {/* Quiet Missing Location Notice */}
+      <MissingLocationNotice hotels={hotels} />
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-2xs">

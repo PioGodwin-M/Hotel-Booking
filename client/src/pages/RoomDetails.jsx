@@ -44,6 +44,7 @@ import { Skeleton } from "../components/ui/Skeleton";
 import { DateRangePicker, GuestsStepper, SafeImage } from "../components/ui";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { cn } from "../lib/utils";
+import RoomLocationSection from "../components/map/RoomLocationSection";
 
 export const RoomDetails = () => {
   const { id } = useParams();
@@ -141,11 +142,10 @@ export const RoomDetails = () => {
       }
     }
 
-    // Dynamic resolution for sample stays when VITE_USE_SAMPLE_DATA=true in dev
+    // Dynamic resolution for sample stays when id starts with sample- in dev
     if (
       id?.startsWith("sample-") &&
-      import.meta.env.DEV &&
-      import.meta.env.VITE_USE_SAMPLE_DATA === "true"
+      import.meta.env.DEV
     ) {
       import("../data/sampleStays")
         .then((mod) => {
@@ -903,6 +903,9 @@ export const RoomDetails = () => {
               ))}
             </div>
           </div>
+
+          {/* Where you'll stay (Property Location Map) */}
+          <RoomLocationSection room={room} isSampleMode={isSampleStay} />
 
           {/* Guest Reviews & Rating Breakdown */}
           <div className="space-y-6 pt-4 border-t border-gray-200 dark:border-gray-800">

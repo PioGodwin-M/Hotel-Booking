@@ -35,7 +35,14 @@ const PageLoader = () => (
 function App() {
   const location = useLocation();
   const isOwner = location.pathname.includes("owner");
-  const { showHotelReg, isServerUnreachable, fetchRooms } = useAppContext();
+  const { showHotelReg, setShowHotelReg, isServerUnreachable, fetchRooms } = useAppContext();
+
+  // Expose modal helper for testing
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.__setShowHotelReg = setShowHotelReg;
+    }
+  }, [setShowHotelReg]);
 
   // Dismiss any active toasts when navigating between routes so they never leak across pages
   useEffect(() => {

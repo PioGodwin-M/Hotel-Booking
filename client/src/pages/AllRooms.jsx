@@ -1,8 +1,9 @@
-import React, { useMemo, useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import {
   LayoutGrid,
   List,
+  Map,
   SlidersHorizontal,
   X,
   Search,
@@ -10,6 +11,7 @@ import {
   RotateCcw,
   Check,
   AlertTriangle,
+  MapPin,
 } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
@@ -19,10 +21,28 @@ import { RoomCardSkeleton } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
-import { DateRangePicker, GuestsStepper } from "../components/ui";
+import { DateRangePicker, GuestsStepper, SafeImage } from "../components/ui";
 import { formatINR } from "../lib/formatters";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { cn } from "../lib/utils";
+import { getPublicCoordinates } from "../lib/geo";
+import { SAMPLE_STAYS, generateSampleStays } from "../data/sampleStays";
+
+const PropertyMap = React.lazy(() =>
+  import("../components/map/PropertyMap").then((mod) => ({ default: mod.PropertyMap }))
+);
+
+const MapSkeleton = ({ height = "100%" }) => (
+  <div
+    style={{ height }}
+    className="w-full h-full min-h-[400px] rounded-xl bg-stone-100 dark:bg-white/5 border border-[#e7e5e0] dark:border-white/10 flex items-center justify-center animate-pulse"
+  >
+    <div className="flex flex-col items-center gap-2 text-stone-400">
+      <MapPin className="w-6 h-6 animate-bounce" />
+      <span className="text-xs font-medium">Loading map...</span>
+    </div>
+  </div>
+);
 
 const ROOM_TYPES = [
   "Single Bed",
@@ -157,11 +177,47 @@ export const AllRooms = () => {
     minPrice !== null ||
     maxPrice !== null;
 
+  const isSample100 = searchParams.get("sample100") === "true";
+  const isSample =
+    searchParams.get("sample") === "true" ||
+    (import.meta.env.DEV && import.meta.env.VITE_USE_SAMPLE_DATA === "true");
+
+  // Determine base stays
+  const effectiveRooms = useMemo(() => {
+    if (isSample100) {
+      return generateSampleStays(100);
+    }
+    if (isSample) {
+      return SAMPLE_STAYS;
+    }
+    if (Array.isArray(rooms) && rooms.length > 0) {
+      return rooms;
+    }
+    if (import.meta.env.DEV && Array.isArray(SAMPLE_STAYS)) {
+      return SAMPLE_STAYS;
+    }
+    return [];
+  }, [rooms, isSample100, isSample]);
+
+  // Map view synchronization state
+  const [selectedStayId, setSelectedStayId] = useState(null);
+  const [mapBounds, setMapBounds] = useState(null);
+  const [userMovedMap, setUserMovedMap] = useState(false);
+  const [areaFilterApplied, setAreaFilterApplied] = useState(false);
+  const cardRefs = useRef({});
+
+  // Reset area filter when search criteria change
+  useEffect(() => {
+    setAreaFilterApplied(false);
+    setUserMovedMap(false);
+    setMapBounds(null);
+  }, [destination, minPrice, maxPrice, selectedTypes, selectedAmenities]);
+
   // Filter & sort rooms
   const filteredRooms = useMemo(() => {
-    if (!Array.isArray(rooms)) return [];
+    if (!Array.isArray(effectiveRooms)) return [];
 
-    return rooms
+    return effectiveRooms
       .filter((room) => {
         // Destination filter (city, address, hotel name)
         if (destination) {
@@ -210,7 +266,7 @@ export const AllRooms = () => {
         return 0;
       });
   }, [
-    rooms,
+    effectiveRooms,
     destination,
     onlyWishlist,
     selectedTypes,
@@ -220,6 +276,72 @@ export const AllRooms = () => {
     sort,
     isWishlisted,
   ]);
+
+  const staysWithCoords = useMemo(() => {
+    return filteredRooms.filter((room) => {
+      const coords = getPublicCoordinates(room);
+      return coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng);
+    });
+  }, [filteredRooms]);
+
+  const staysWithoutCoordsCount = filteredRooms.length - staysWithCoords.length;
+
+  const staysInBounds = useMemo(() => {
+    if (!mapBounds) return staysWithCoords;
+    return staysWithCoords.filter((r) => {
+      const coords = getPublicCoordinates(r);
+      if (!coords) return false;
+      return (
+        coords.lat >= mapBounds.south &&
+        coords.lat <= mapBounds.north &&
+        coords.lng >= mapBounds.west &&
+        coords.lng <= mapBounds.east
+      );
+    });
+  }, [staysWithCoords, mapBounds]);
+
+  const displayedRooms = useMemo(() => {
+    if (view === "map" && areaFilterApplied) {
+      return staysInBounds;
+    }
+    return filteredRooms;
+  }, [view, areaFilterApplied, staysInBounds, filteredRooms]);
+
+  const mapMarkers = useMemo(() => {
+    return displayedRooms
+      .map((room) => {
+        const coords = getPublicCoordinates(room);
+        if (!coords) return null;
+        return {
+          id: room._id,
+          lat: coords.lat,
+          lng: coords.lng,
+          price: room.pricePerNight,
+          title: room.hotel?.name || room.roomType,
+          preview: {
+            image: room.images?.[0] || room.hotel?.images?.[0],
+            title: room.hotel?.name,
+            roomType: room.roomType,
+            price: room.pricePerNight,
+            city: room.hotel?.city,
+          },
+        };
+      })
+      .filter(Boolean);
+  }, [displayedRooms]);
+
+  const handleMarkerClick = React.useCallback((stayId) => {
+    setSelectedStayId(stayId);
+    const cardEl = cardRefs.current[stayId];
+    if (cardEl) {
+      cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, []);
+
+  const handleBoundsChange = React.useCallback((bounds) => {
+    setMapBounds(bounds);
+    setUserMovedMap(true);
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -476,7 +598,7 @@ export const AllRooms = () => {
           </select>
         </div>
 
-        {/* View Mode (Grid vs List) */}
+        {/* View Mode (Grid vs List vs Map) */}
         <div className="inline-flex items-center h-11 p-1 rounded-xl bg-stone-100 dark:bg-white/10 border border-[#e7e5e0] dark:border-white/10 shrink-0">
           <button
             type="button"
@@ -486,7 +608,7 @@ export const AllRooms = () => {
               "w-9 h-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer",
               view === "grid"
                 ? "bg-white dark:bg-[#151d30] text-[#0b1220] dark:text-[#faf8f5] shadow-2xs"
-                : "text-stone-400 hover:text-stone-700"
+                : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-300"
             )}
           >
             <LayoutGrid className="w-4 h-4" />
@@ -499,10 +621,23 @@ export const AllRooms = () => {
               "w-9 h-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer",
               view === "list"
                 ? "bg-white dark:bg-[#151d30] text-[#0b1220] dark:text-[#faf8f5] shadow-2xs"
-                : "text-stone-400 hover:text-stone-700"
+                : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-300"
             )}
           >
             <List className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => updateParams({ view: "map" })}
+            aria-label="Map view"
+            className={cn(
+              "w-9 h-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer",
+              view === "map"
+                ? "bg-white dark:bg-[#151d30] text-[#0b1220] dark:text-[#faf8f5] shadow-2xs"
+                : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-300"
+            )}
+          >
+            <Map className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -607,15 +742,32 @@ export const AllRooms = () => {
             </div>
           )}
 
-          {/* Result Count */}
-          <div className="mb-4 flex items-center justify-between">
+          {/* Result Count and Missing Location Notice */}
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <p className="text-xs sm:text-sm font-medium text-stone-600 dark:text-stone-400">
               Showing{" "}
               <span className="font-bold text-[#0b1220] dark:text-[#faf8f5]">
-                {filteredRooms.length}
+                {displayedRooms.length}
               </span>{" "}
-              {filteredRooms.length === 1 ? "stay" : "stays"}
+              {displayedRooms.length === 1 ? "stay" : "stays"}
+              {areaFilterApplied && " in this area"}
             </p>
+
+            {view === "map" && staysWithoutCoordsCount > 0 && (
+              <div className="inline-flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
+                <span>
+                  {staysWithoutCoordsCount}{" "}
+                  {staysWithoutCoordsCount === 1 ? "stay has" : "stays have"} no map location
+                </span>
+                <button
+                  type="button"
+                  onClick={() => updateParams({ view: "list" })}
+                  className="font-medium text-[#0b1220] dark:text-white underline hover:text-stone-600 cursor-pointer"
+                >
+                  View in list
+                </button>
+              </div>
+            )}
           </div>
 
           {loadingRooms ? (
@@ -640,7 +792,7 @@ export const AllRooms = () => {
               onAction={() => fetchRooms()}
               className="my-8"
             />
-          ) : filteredRooms.length === 0 ? (
+          ) : displayedRooms.length === 0 ? (
             onlyWishlist ? (
               <EmptyState
                 icon={<Heart className="w-6 h-6 text-rose-500" />}
@@ -648,6 +800,17 @@ export const AllRooms = () => {
                 description="Tap the heart icon on any hotel card to save your favourite stays here."
                 actionLabel="Explore all stays"
                 onAction={() => updateParams({ wishlist: null })}
+                className="my-8"
+              />
+            ) : areaFilterApplied ? (
+              <EmptyState
+                title="No stays in this map area"
+                description="Try panning to a different location or resetting the area."
+                actionLabel="Reset area"
+                onAction={() => {
+                  setAreaFilterApplied(false);
+                  setUserMovedMap(false);
+                }}
                 className="my-8"
               />
             ) : (
@@ -659,6 +822,190 @@ export const AllRooms = () => {
                 className="my-8"
               />
             )
+          ) : view === "map" ? (
+            <div>
+              {/* Desktop Split View: 55% List + 45% Sticky Map */}
+              <div className="hidden lg:flex items-start gap-6">
+                {/* Left Column: 55% scrollable card list */}
+                <div className="w-[55%] min-w-0 space-y-4">
+                  {displayedRooms.map((room, idx) => (
+                    <div
+                      key={room._id}
+                      ref={(el) => (cardRefs.current[room._id] = el)}
+                      onMouseEnter={() => setSelectedStayId(room._id)}
+                      onMouseLeave={() =>
+                        setSelectedStayId((prev) => (prev === room._id ? null : prev))
+                      }
+                      onFocus={() => setSelectedStayId(room._id)}
+                      tabIndex={0}
+                      className={cn(
+                        "rounded-xl transition-all duration-150 focus:outline-none",
+                        selectedStayId === room._id
+                          ? "ring-2 ring-[#0b1220] shadow-md"
+                          : "border-transparent"
+                      )}
+                    >
+                      <RoomCard room={room} layout="list" index={idx} />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Right Column: 45% sticky full-height map */}
+                <div className="w-[45%] shrink-0 sticky top-28 h-[calc(100vh-140px)] min-h-[520px] rounded-xl overflow-hidden border border-[#e7e5e0] dark:border-white/10 relative shadow-2xs">
+                  {/* Floating 'Search this area' standard button */}
+                  {userMovedMap && !areaFilterApplied && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] flex flex-col items-center pointer-events-auto">
+                      <button
+                        type="button"
+                        onClick={() => setAreaFilterApplied(true)}
+                        className="px-4 py-2 min-h-[40px] rounded-[10px] bg-[#0b1220] text-white text-xs font-semibold shadow-md hover:bg-stone-800 transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Search className="w-3.5 h-3.5" />
+                        Search this area
+                      </button>
+                      <span className="mt-1.5 px-3 py-1 rounded-[8px] bg-white/95 dark:bg-[#151d30]/95 text-[11px] text-stone-600 dark:text-stone-300 shadow-2xs backdrop-blur-xs border border-[#e7e5e0] dark:border-white/10">
+                        {staysInBounds.length} of {filteredRooms.length} loaded stays in this area · Searches already loaded stays
+                      </span>
+                    </div>
+                  )}
+
+                  {areaFilterApplied && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] flex items-center gap-2 pointer-events-auto">
+                      <span className="px-3 py-1.5 rounded-[8px] bg-white/95 dark:bg-[#151d30]/95 text-xs font-semibold text-[#0b1220] dark:text-white shadow-md border border-[#e7e5e0] dark:border-white/10">
+                        Showing {staysInBounds.length} stays
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAreaFilterApplied(false);
+                          setUserMovedMap(false);
+                        }}
+                        className="px-3 py-1.5 min-h-[36px] rounded-[10px] bg-[#0b1220] text-white text-xs font-medium shadow-md hover:bg-stone-800 cursor-pointer"
+                      >
+                        Reset area
+                      </button>
+                    </div>
+                  )}
+
+                  <React.Suspense fallback={<MapSkeleton />}>
+                    <PropertyMap
+                      markers={mapMarkers}
+                      selectedId={selectedStayId}
+                      height="100%"
+                      interactive={true}
+                      onMarkerClick={handleMarkerClick}
+                      onBoundsChange={handleBoundsChange}
+                      accessibleName="Stays Location Map"
+                    />
+                  </React.Suspense>
+                </div>
+              </div>
+
+              {/* Mobile Full-Screen Map View with Bottom-Sheet Carousel */}
+              <div className="lg:hidden relative h-[calc(100dvh-185px)] min-h-[460px] rounded-xl overflow-hidden border border-[#e7e5e0] dark:border-white/10 shadow-2xs">
+                {/* Floating List button */}
+                <div className="absolute top-3 left-3 z-[400] flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updateParams({ view: "list" })}
+                    aria-label="Switch to list view"
+                    className="px-3.5 py-2 min-h-[44px] rounded-[10px] bg-white dark:bg-[#151d30] text-[#0b1220] dark:text-white text-xs font-semibold shadow-md border border-[#e7e5e0] dark:border-white/10 flex items-center gap-1.5 cursor-pointer touch-target"
+                  >
+                    <List className="w-4 h-4" />
+                    <span>List</span>
+                  </button>
+                </div>
+
+                {/* Floating Search this area on mobile */}
+                {userMovedMap && !areaFilterApplied && (
+                  <div className="absolute top-3 right-3 z-[400] flex flex-col items-end">
+                    <button
+                      type="button"
+                      onClick={() => setAreaFilterApplied(true)}
+                      className="px-3.5 py-2 min-h-[44px] rounded-[10px] bg-[#0b1220] text-white text-xs font-semibold shadow-md hover:bg-stone-800 transition-all cursor-pointer flex items-center gap-1.5 touch-target"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      <span>Search area</span>
+                    </button>
+                  </div>
+                )}
+
+                {areaFilterApplied && (
+                  <div className="absolute top-3 right-3 z-[400] flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAreaFilterApplied(false);
+                        setUserMovedMap(false);
+                      }}
+                      className="px-3.5 py-2 min-h-[44px] rounded-[10px] bg-[#0b1220] text-white text-xs font-medium shadow-md hover:bg-stone-800 cursor-pointer touch-target"
+                    >
+                      Reset area
+                    </button>
+                  </div>
+                )}
+
+                <React.Suspense fallback={<MapSkeleton />}>
+                  <PropertyMap
+                    markers={mapMarkers}
+                    selectedId={selectedStayId}
+                    height="100%"
+                    interactive={true}
+                    onMarkerClick={handleMarkerClick}
+                    onBoundsChange={handleBoundsChange}
+                    accessibleName="Stays Location Map Mobile"
+                  />
+                </React.Suspense>
+
+                {/* Bottom Sheet Swipeable Carousel */}
+                {displayedRooms.length > 0 && (
+                  <div className="absolute bottom-3 inset-x-3 z-[400] flex gap-3 overflow-x-auto snap-x snap-mandatory py-1 scrollbar-none">
+                    {displayedRooms.slice(0, 20).map((room) => (
+                      <div
+                        key={room._id}
+                        onClick={() => setSelectedStayId(room._id)}
+                        className={cn(
+                          "w-[270px] shrink-0 snap-center p-2.5 rounded-xl bg-white dark:bg-[#151d30] shadow-xl border transition-all cursor-pointer",
+                          selectedStayId === room._id
+                            ? "border-[#0b1220] ring-2 ring-[#0b1220]"
+                            : "border-[#e7e5e0] dark:border-white/10"
+                        )}
+                      >
+                        <div className="flex gap-3 items-center">
+                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-stone-100 shrink-0">
+                            <SafeImage
+                              src={room.images?.[0] || room.hotel?.images?.[0]}
+                              alt={room.hotel?.name || "Stay"}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0 text-left">
+                            <h4 className="text-xs font-bold text-[#0b1220] dark:text-[#faf8f5] truncate">
+                              {room.hotel?.name || room.roomType}
+                            </h4>
+                            <p className="text-[11px] text-stone-500 truncate">
+                              {room.hotel?.city || room.roomType}
+                            </p>
+                            <div className="mt-1 flex items-center justify-between">
+                              <span className="text-xs font-bold text-[#0b1220] dark:text-[#faf8f5]">
+                                {formatINR(room.pricePerNight)}
+                                <span className="text-[10px] text-stone-500 font-normal"> / night</span>
+                              </span>
+                              <Link
+                                to={`/rooms/${room._id}`}
+                                className="text-[11px] font-semibold text-[#0b1220] dark:text-white underline min-h-[44px] flex items-center"
+                              >
+                                View
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           ) : (
             <div
               className={cn(
@@ -668,7 +1015,7 @@ export const AllRooms = () => {
                   : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
               )}
             >
-              {filteredRooms.map((room, idx) => (
+              {displayedRooms.map((room, idx) => (
                 <RoomCard
                   key={room._id}
                   room={room}

@@ -33,18 +33,44 @@ const hotelSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
-    
-   status: {
-  type: String,
-  enum: ["ACTIVE", "INACTIVE", "DELETING"],
-  default: "ACTIVE",
-  index: true,
-},
 
-roomRevision: {
-  type: Number,
-  default: 0,
-},
+    area: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    latitude: {
+      type: Number,
+      default: null,
+      min: -90,
+      max: 90,
+    },
+
+    longitude: {
+      type: Number,
+      default: null,
+      min: -180,
+      max: 180,
+    },
+
+    locationPrecision: {
+      type: String,
+      enum: ["exact", "approximate"],
+      default: "exact",
+    },
+
+    status: {
+      type: String,
+      enum: ["ACTIVE", "INACTIVE", "DELETING"],
+      default: "ACTIVE",
+      index: true,
+    },
+
+    roomRevision: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

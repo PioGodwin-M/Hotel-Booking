@@ -4,6 +4,10 @@ import { randomUUID } from "node:crypto";
 import Hotel from "../models/Hotel.js";
 import Room from "../models/Room.js";
 import OutboxEvent from "../models/OutboxEvent.js";
+import {
+  serializePublicRoom,
+  serializePublicRoomList,
+} from "../serializers/propertyLocationSerializer.js";
 
 // Create a room under a hotel owned by the authenticated user
 
@@ -422,14 +426,14 @@ export const getPublicRooms = async (req, res, next) => {
       hotel: { $in: activeHotelIds },
       isActive: true,
     })
-      .populate("hotel", "_id name address contact city status")
+      .populate("hotel", "_id name address contact city area status latitude longitude locationPrecision")
       .sort({ createdAt: -1 })
       .lean();
 
     return res.status(200).json({
       success: true,
       count: rooms.length,
-      rooms,
+      rooms: serializePublicRoomList(rooms),
     });
   } catch (error) {
     next(error);
@@ -457,7 +461,7 @@ export const getPublicRoomById = async (req, res, next) => {
       _id: roomId,
       isActive: true,
     })
-      .populate("hotel", "_id name address contact city status")
+      .populate("hotel", "_id name address contact city area status latitude longitude locationPrecision")
       .lean();
 
     // 3. Verify room exists and parent hotel is active
@@ -470,7 +474,7 @@ export const getPublicRoomById = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      room,
+      room: serializePublicRoom(room),
     });
   } catch (error) {
     next(error);

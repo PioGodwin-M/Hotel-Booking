@@ -144,3 +144,26 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Leaflet map enhancements - PGM Stays design language */
+.leaflet-container {
+  font-family: var(--font-sans) !important;
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(11, 18, 32, 0.12), 0 8px 10px -6px rgba(11, 18, 32, 0.08) !important;
+  border: 1px solid #e7e5e0 !important;
+  padding: 4px !important;
+}
+.dark .leaflet-popup-content-wrapper {
+  background: #151d30 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #faf8f5 !important;
+}
+.leaflet-popup-tip {
+  background: #ffffff !important;
+}
+.dark .leaflet-popup-tip {
+  background: #151d30 !important;
+}
+

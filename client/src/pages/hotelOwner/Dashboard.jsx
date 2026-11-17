@@ -7,6 +7,7 @@ import {
   CreditCard,
   ArrowUpDown,
   AlertTriangle,
+  MapPin,
 } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { useAppContext } from "../../context/AppContext";
@@ -19,6 +20,8 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { formatINR } from "../../lib/formatters";
 import { showErrorToast } from "../../lib/toast";
+import { MissingLocationNotice } from "../../components/hotelOwner/MissingLocationNotice";
+import { EditPropertyModal } from "../../components/EditPropertyModal";
 
 // Animated Count-Up component with prefers-reduced-motion support
 const CountUp = ({ target = 0, isMoney = false }) => {
@@ -207,6 +210,7 @@ export const Dashboard = () => {
   // Sorting for recent reservations
   const [sortField, setSortField] = useState("createdAt");
   const [sortAsc, setSortAsc] = useState(false);
+  const [editingHotel, setEditingHotel] = useState(null);
 
   const fetchMetrics = useCallback(async () => {
     setLoading(true);
@@ -330,7 +334,32 @@ export const Dashboard = () => {
               : `Showing performance for ${selectedHotelObj?.name || "selected property"}.`}
           </p>
         </div>
+
+        {selectedHotelObj && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setEditingHotel(selectedHotelObj)}
+            leftIcon={<MapPin className="w-3.5 h-3.5" />}
+            className="rounded-[10px] text-xs font-semibold self-start sm:self-auto"
+          >
+            Edit property location
+          </Button>
+        )}
       </div>
+
+      {/* Quiet Missing Location Notice */}
+      <MissingLocationNotice hotels={hotels} />
+
+      {/* Edit Property Modal */}
+      {editingHotel && (
+        <EditPropertyModal
+          hotel={editingHotel}
+          isOpen={Boolean(editingHotel)}
+          onClose={() => setEditingHotel(null)}
+          initialTab="location"
+        />
+      )}
 
       {/* KPI Cards Grid */}
       {error ? (

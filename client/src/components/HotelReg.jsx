@@ -20,6 +20,7 @@ import { BRAND_NAME } from "../config/brand";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
+import { OwnerLocationPicker } from "./map/OwnerLocationPicker";
 import { cn } from "../lib/utils";
 
 const STEPS = [
@@ -53,6 +54,10 @@ export const HotelReg = () => {
     city: "",
     contact: "",
     email: "",
+    latitude: null,
+    longitude: null,
+    locationPrecision: "exact",
+    area: "",
     images: [
       "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
     ],
@@ -174,6 +179,16 @@ export const HotelReg = () => {
         address: form.address.trim(),
         city: form.city.trim(),
       };
+
+      if (form.latitude !== null && form.longitude !== null) {
+        payload.latitude = form.latitude;
+        payload.longitude = form.longitude;
+        payload.locationPrecision = form.locationPrecision || "exact";
+      }
+
+      if (form.area && form.area.trim()) {
+        payload.area = form.area.trim();
+      }
 
       const { data } = await authApi.post("/api/hotels/", payload);
 
@@ -350,6 +365,26 @@ export const HotelReg = () => {
                   placeholder="Select a city..."
                   options={cities}
                 />
+
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
+                  <OwnerLocationPicker
+                    latitude={form.latitude}
+                    longitude={form.longitude}
+                    locationPrecision={form.locationPrecision}
+                    area={form.area}
+                    city={form.city}
+                    address={form.address}
+                    onChange={({ latitude, longitude, locationPrecision, area }) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        latitude,
+                        longitude,
+                        locationPrecision,
+                        area,
+                      }));
+                    }}
+                  />
+                </div>
               </div>
             )}
 
@@ -484,6 +519,17 @@ export const HotelReg = () => {
                     </span>
                     <span className="font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[240px]">
                       {form.address}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="text-gray-500">
+                      Map location
+                    </span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">
+                      {form.latitude != null && form.longitude != null
+                        ? `${form.latitude.toFixed(4)}, ${form.longitude.toFixed(4)} (${form.locationPrecision})`
+                        : "No coordinates set"}
                     </span>
                   </div>
 

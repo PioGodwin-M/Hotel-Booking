@@ -1,6 +1,6 @@
-
 import mongoose from "mongoose";
 import Hotel from "../models/Hotel.js";
+import { serializeOwnerHotel } from "../serializers/propertyLocationSerializer.js";
 
 export const updateHotelStatus = async (req, res, next) => {
   const { hotelId } = req.params;
@@ -53,9 +53,8 @@ export const updateHotelStatus = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: `Hotel status updated to ${status}`,
-      hotel,
+      hotel: serializeOwnerHotel(hotel),
     });
-
   } catch (error) {
     return next(error);
   }
