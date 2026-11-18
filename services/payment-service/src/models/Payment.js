@@ -112,6 +112,21 @@ const paymentSchema = new mongoose.Schema(
       default: null,
     },
 
+    cardBrand: {
+      type: String,
+      default: null,
+    },
+
+    cardLast4: {
+      type: String,
+      default: null,
+    },
+
+    paymentReference: {
+      type: String,
+      default: null,
+    },
+
     refundId: {
       type: String,
       default: null,

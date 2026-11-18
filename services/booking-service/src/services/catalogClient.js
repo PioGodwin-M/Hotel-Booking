@@ -140,3 +140,47 @@ export const getOwnerHotelIds = async (ownerId) => {
 
   return result.hotelIds;
 };
+
+/**
+ * Fetch stay-details snapshot for booking confirmation & details (Round 4g B3).
+ * Best-effort helper: returns null on network/service failure without throwing.
+ */
+export const getPropertyBookingSnapshot = async (propertyId, roomId) => {
+  const CATALOG_SERVICE_URL = getCatalogUrl();
+  const INTERNAL_SERVICE_SECRET = getInternalSecret();
+
+  if (!CATALOG_SERVICE_URL || !INTERNAL_SERVICE_SECRET) {
+    console.warn("[catalogClient] Catalog Service URL or secret not configured for snapshot");
+    return null;
+  }
+
+  if (!propertyId) {
+    return null;
+  }
+
+  const baseUrl = CATALOG_SERVICE_URL.replace(/\/+$/, "");
+  const queryParam = roomId ? `?roomId=${encodeURIComponent(roomId)}` : "";
+  const url = `${baseUrl}/internal/properties/${encodeURIComponent(propertyId)}/booking-snapshot${queryParam}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "x-internal-service-key": INTERNAL_SERVICE_SECRET,
+      },
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (!response.ok) {
+      console.warn(`[catalogClient] Failed to fetch booking snapshot for ${propertyId}: HTTP ${response.status}`);
+      return null;
+    }
+
+    const result = await response.json();
+    return result?.data || null;
+  } catch (err) {
+    console.warn(`[catalogClient] Network error fetching booking snapshot for ${propertyId}: ${err.message}`);
+    return null;
+  }
+};

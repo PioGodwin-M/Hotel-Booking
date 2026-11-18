@@ -103,3 +103,46 @@ export const requestInternalRefund = async ({
     data: result.data,
   };
 };
+
+/**
+ * Fetch customer-facing payment summary from Payment Service (Round 4g B5).
+ * Best-effort helper: returns null on failure without throwing.
+ */
+export const getPaymentSummaryByBooking = async (bookingId) => {
+  if (!bookingId) {
+    return null;
+  }
+
+  const PAYMENT_SERVICE_URL = getPaymentUrl();
+  const PAYMENT_SERVICE_SECRET = getPaymentSecret();
+
+  if (!PAYMENT_SERVICE_URL || !PAYMENT_SERVICE_SECRET) {
+    console.warn("[paymentClient] Payment Service configuration missing for summary");
+    return null;
+  }
+
+  const baseUrl = PAYMENT_SERVICE_URL.replace(/\/+$/, "");
+  const url = `${baseUrl}/internal/payments/booking/${encodeURIComponent(bookingId)}/summary`;
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "x-payment-service-key": PAYMENT_SERVICE_SECRET,
+      },
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (!response.ok) {
+      console.warn(`[paymentClient] Failed to fetch payment summary for booking ${bookingId}: HTTP ${response.status}`);
+      return null;
+    }
+
+    const result = await response.json();
+    return result?.data || null;
+  } catch (err) {
+    console.warn(`[paymentClient] Network error fetching payment summary for booking ${bookingId}: ${err.message}`);
+    return null;
+  }
+};

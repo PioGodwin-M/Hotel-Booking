@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
+import { getPropertyBookingSnapshot } from "./catalogClient.js";
+import { getPaymentSummaryByBooking } from "./paymentClient.js";
+import { serializeBookingDetail } from "../serializers/bookingDetailSerializer.js";
 
 const ALLOWED_STATUSES = [
   "PENDING",
@@ -86,6 +89,7 @@ export const getBookingById = async ({ bookingId, userId }) => {
   }
 
   // Ownership is part of the query, not a separate client-side check.
+  // Returns 404 BOOKING_NOT_FOUND if the booking doesn't exist OR isn't owned by this user.
   const booking = await Booking.findOne({
     _id: bookingId,
     userId,
@@ -97,5 +101,33 @@ export const getBookingById = async ({ bookingId, userId }) => {
     throw error;
   }
 
-  return booking;
+  // Lazy snapshot fill: if the booking does not yet have stayDetails, fetch and cache it (Round 4g B4)
+  if (!booking.stayDetails || !booking.stayDetails.propertyName) {
+    try {
+      const snapshot = await getPropertyBookingSnapshot(
+        booking.hotelId?.toString(),
+        booking.roomCategoryId?.toString()
+      );
+      if (snapshot) {
+        await Booking.updateOne(
+          { _id: booking._id },
+          { $set: { stayDetails: snapshot } }
+        );
+        booking.stayDetails = snapshot;
+      }
+    } catch (err) {
+      console.warn(`[getBookingById] Non-fatal error lazy-filling stayDetails: ${err.message}`);
+    }
+  }
+
+  // Best-effort payment summary from Payment Service (Round 4g B5)
+  let paymentSummary = null;
+  try {
+    paymentSummary = await getPaymentSummaryByBooking(booking._id.toString());
+  } catch (err) {
+    console.warn(`[getBookingById] Non-fatal error retrieving payment summary: ${err.message}`);
+  }
+
+  // Serialize and enforce privacy gate (Round 4g B1, B2)
+  return serializeBookingDetail(booking, paymentSummary);
 };

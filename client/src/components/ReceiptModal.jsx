@@ -10,13 +10,21 @@ import { BRAND_NAME } from "../config/brand";
 export const ReceiptModal = ({ isOpen, onClose, booking, user }) => {
   if (!booking) return null;
 
-  const receiptNumber = `REC-${(booking._id || "").slice(-8).toUpperCase()}`;
+  const bookingIdStr = (booking.id || booking._id || "").toString();
+  const receiptNumber =
+    booking.paymentSummary?.paymentReference ||
+    `REC-${bookingIdStr.slice(-8).toUpperCase()}`;
   const checkIn = booking.checkIn || booking.checkInDate;
   const checkOut = booking.checkOut || booking.checkOutDate;
   const guestCount = booking.numberOfGuests || booking.guests || 1;
   const totalAmount =
-    booking.priceSnapshot?.totalAmount ?? booking.totalPrice ?? 0;
+    booking.priceBreakdown?.totalAmount ??
+    booking.priceSnapshot?.totalAmount ??
+    booking.totalPrice ??
+    0;
   const nights =
+    booking.priceBreakdown?.numberOfNights ||
+    booking.numberOfNights ||
     booking.priceSnapshot?.numberOfNights ||
     (checkIn && checkOut
       ? Math.max(
@@ -27,10 +35,21 @@ export const ReceiptModal = ({ isOpen, onClose, booking, user }) => {
         )
       : 1);
 
-  const hotelName = booking.hotel?.name || "Hotel Stay";
+  const hotelName =
+    booking.stayDetails?.propertyName ||
+    booking.hotel?.name ||
+    "Hotel Stay";
   const hotelAddress =
-    booking.hotel?.address || booking.hotel?.city || "Destination";
-  const roomType = booking.roomType || booking.room?.roomType || "Standard Room";
+    booking.stayDetails?.address ||
+    [booking.stayDetails?.area, booking.stayDetails?.city].filter(Boolean).join(", ") ||
+    booking.hotel?.address ||
+    booking.hotel?.city ||
+    "Destination";
+  const roomType =
+    booking.stayDetails?.roomTypeName ||
+    booking.roomType ||
+    booking.room?.roomType ||
+    "Standard Room";
 
   const handlePrint = () => {
     window.print();

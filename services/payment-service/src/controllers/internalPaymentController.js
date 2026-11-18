@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import Payment from "../models/Payment.js";
 import { processRefund } from "../services/refundService.js";
 import {
   getInternalPaymentStatus,
@@ -76,6 +77,63 @@ export const internalGetPaymentStatusController = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       data: status,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * Controller for internal booking payment summary inquiry (Round 4g B5).
+ * Returns customer-facing payment summary: status, amountMinor, currency, paidAt, cardBrand, cardLast4, paymentReference.
+ * Never leaks Stripe PaymentIntent IDs, Stripe secrets, or internal payment IDs.
+ */
+export const internalGetPaymentSummaryByBookingController = async (req, res, next) => {
+  try {
+    const { bookingId } = req.params;
+
+    if (!bookingId || !mongoose.isValidObjectId(bookingId)) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid bookingId is required",
+      });
+    }
+
+    // Look for successful payment first, otherwise latest attempt
+    let payment = await Payment.findOne({
+      bookingId,
+      status: "SUCCEEDED",
+    }).lean();
+
+    if (!payment) {
+      payment = await Payment.findOne({ bookingId })
+        .sort({ attemptNumber: -1, createdAt: -1 })
+        .lean();
+    }
+
+    if (!payment) {
+      return res.status(200).json({
+        success: true,
+        data: null,
+      });
+    }
+
+    const summary = {
+      status: payment.status,
+      amountMinor: payment.amountMinor,
+      currency: payment.currency,
+      paidAt: payment.paidAt || null,
+      cardBrand: payment.cardBrand || payment.metadata?.cardBrand || null,
+      cardLast4: payment.cardLast4 || payment.metadata?.cardLast4 || null,
+      paymentReference:
+        payment.paymentReference ||
+        payment.metadata?.receiptNumber ||
+        `REC-${payment.bookingId.toString().slice(-8).toUpperCase()}`,
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: summary,
     });
   } catch (error) {
     return next(error);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   FileText,
   AlertTriangle,
@@ -36,6 +36,7 @@ const BookingCardItem = ({
   onViewReceipt,
   onCountdownExpire,
 }) => {
+  const navigate = useNavigate();
   const matchedRoom = Array.isArray(rooms)
     ? rooms.find((r) => r._id === booking.roomCategoryId)
     : null;
@@ -112,7 +113,9 @@ const BookingCardItem = ({
             </div>
 
             <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 truncate" title={hotelName}>
-              {hotelName}
+              <Link to={`/bookings/${booking._id}`} className="hover:underline text-inherit">
+                {hotelName}
+              </Link>
             </h3>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">
               {roomType} · {hotelCity}
@@ -171,6 +174,15 @@ const BookingCardItem = ({
 
         {/* Right: Actions (Col 3) */}
         <div className="lg:col-span-3 flex flex-col gap-2.5 items-start lg:items-end justify-center w-full">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate(`/bookings/${booking._id}`)}
+            className="w-full sm:w-auto text-sm min-h-[44px] h-11 flex items-center justify-center rounded-[10px]"
+          >
+            View stay details
+          </Button>
+
           {statusDisplay.canPay && (
             <Button
               variant="primary"
@@ -199,7 +211,7 @@ const BookingCardItem = ({
               className="w-full sm:w-auto text-sm min-h-[44px] h-11 flex items-center justify-center rounded-[10px]"
               leftIcon={<FileText className="w-4 h-4 text-gray-500" />}
             >
-              View receipt
+              Download receipt
             </Button>
           )}
 

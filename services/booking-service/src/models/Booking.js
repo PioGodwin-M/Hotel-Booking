@@ -116,6 +116,33 @@ const bookingSchema = new mongoose.Schema(
       default: 1,
       min: 1,
     },
+
+    stayDetails: {
+      propertyId: { type: String, default: null },
+      propertyName: { type: String, default: null },
+      address: { type: String, default: null },
+      area: { type: String, default: null },
+      city: { type: String, default: null },
+      contactPhone: { type: String, default: null },
+      contactEmail: { type: String, default: null },
+      checkInTime: { type: String, default: "14:00" },
+      checkOutTime: { type: String, default: "11:00" },
+      roomCategoryId: { type: String, default: null },
+      roomTypeName: { type: String, default: null },
+      maxGuests: { type: Number, default: 2 },
+      bedConfiguration: { type: String, default: null },
+      mainPhoto: { type: String, default: null },
+      coordinates: {
+        lat: { type: Number, default: null },
+        lng: { type: Number, default: null },
+      },
+      locationPrecision: {
+        type: String,
+        enum: ["exact", "approximate"],
+        default: "exact",
+      },
+      approximateRadiusMeters: { type: Number, default: null },
+    },
   },
   { timestamps: true }
 );

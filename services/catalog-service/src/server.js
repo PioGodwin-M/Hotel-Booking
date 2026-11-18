@@ -72,6 +72,7 @@ app.use("/internal/rooms", internalRoomRoutes);
 
 // Internal hotel routes (for inter-service communication)
 app.use("/internal/hotels", internalHotelRoutes);
+app.use("/internal/properties", internalHotelRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {

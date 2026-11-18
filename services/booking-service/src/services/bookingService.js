@@ -6,7 +6,7 @@ import RoomInventory from "../models/RoomInventory.js";
 
 import { normalizeDate, calculateNights } from "../utils/dateUtils.js";
 import { reserveInventory } from "./reservationService.js";
-import { getRoomPricing } from "./catalogClient.js";
+import { getRoomPricing, getPropertyBookingSnapshot } from "./catalogClient.js";
 
 
 const HOLD_DURATION_MS = 10 * 60 * 1000;
@@ -205,7 +205,16 @@ export const createBooking = async ({
     numberOfRooms
   );
 
-  // 6. Create the booking and reserve inventory atomically.
+  // 6. Best-effort stay details snapshot (Round 4g B2).
+  // Non-blocking: failure to fetch snapshot must NEVER fail hold creation.
+  let stayDetails = null;
+  try {
+    stayDetails = await getPropertyBookingSnapshot(hotelId, roomCategoryId);
+  } catch (err) {
+    console.warn(`[createBooking] Non-fatal error obtaining stayDetails: ${err.message}`);
+  }
+
+  // 7. Create the booking and reserve inventory atomically.
   const session = await mongoose.startSession();
 
   let createdBooking;
@@ -254,6 +263,7 @@ export const createBooking = async ({
             holdExpiresAt,
             idempotencyKey,
             requestFingerprint: fingerprint,
+            stayDetails: stayDetails || undefined,
           },
         ],
         { session }

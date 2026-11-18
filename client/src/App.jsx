@@ -14,6 +14,7 @@ const About = lazy(() => import("./pages/About"));
 const AllRooms = lazy(() => import("./pages/AllRooms"));
 const RoomDetails = lazy(() => import("./pages/RoomDetails"));
 const MyBookings = lazy(() => import("./pages/MyBookings"));
+const BookingDetails = lazy(() => import("./pages/BookingDetails"));
 const BookingSuccess = lazy(() => import("./pages/BookingSuccess"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Layout = lazy(() => import("./pages/hotelOwner/Layout"));
@@ -116,6 +117,7 @@ function App() {
                 <Route path="/rooms" element={<AllRooms />} />
                 <Route path="/rooms/:id" element={<RoomDetails />} />
                 <Route path="/my-bookings" element={<MyBookings />} />
+                <Route path="/bookings/:bookingId" element={<BookingDetails />} />
                 <Route path="/booking-success" element={<BookingSuccess />} />
                 <Route path="/stress-test" element={<CardStressTest />} />
                 <Route path="/privacy" element={<Privacy />} />

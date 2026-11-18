@@ -1,6 +1,9 @@
 import express from "express";
 
-import { getOwnerHotelsInternal } from "../controllers/internalHotelController.js";
+import {
+  getOwnerHotelsInternal,
+  getPropertyBookingSnapshotInternal,
+} from "../controllers/internalHotelController.js";
 import { authenticateInternalService } from "../middleware/internalServiceAuth.js";
 
 const router = express.Router();
@@ -10,6 +13,13 @@ router.get(
   "/owner/:ownerId",
   authenticateInternalService,
   getOwnerHotelsInternal
+);
+
+// Internal booking snapshot endpoint (Round 4g B3)
+router.get(
+  "/:propertyId/booking-snapshot",
+  authenticateInternalService,
+  getPropertyBookingSnapshotInternal
 );
 
 export default router;
